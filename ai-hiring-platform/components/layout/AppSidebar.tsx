@@ -71,7 +71,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             AI
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-            <span className="font-semibold">HireVeo AI</span>
+            <span className="font-semibold">HireX AI</span>
             <span className="text-muted-foreground text-xs">Hiring Automation</span>
           </div>
         </div>
@@ -96,20 +96,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-         <SidebarMenu>
-            <SidebarMenuItem>
-                <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
-                    <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarImage src="/avatars/01.png" alt="User" />
-                        <AvatarFallback className="rounded-lg">HR</AvatarFallback>
-                    </Avatar>
-                     <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                        <span className="truncate font-semibold">Sarah Connor</span>
-                        <span className="truncate text-xs">Recruiter</span>
-                    </div>
-                </div>
-            </SidebarMenuItem>
-         </SidebarMenu>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src="/avatars/01.png" alt="User" />
+                <AvatarFallback className="rounded-lg">HR</AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">Sarah Connor</span>
+                <span className="truncate text-xs">Recruiter</span>
+              </div>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

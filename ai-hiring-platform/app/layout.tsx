@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Navbar } from "@/components/layout/Navbar";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HireVeo AI - Intelligent Hiring Automation",
+  title: "HireX AI - Intelligent Hiring Automation",
   description: "AI-powered hiring automation platform.",
 };
 
@@ -30,15 +31,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <Navbar />
-            <main className="flex flex-1 flex-col gap-4 p-4">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <Navbar />
+              <main className="flex flex-1 flex-col gap-4 p-4">
+                {children}
+              </main>
+            </SidebarInset>
+          </SidebarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

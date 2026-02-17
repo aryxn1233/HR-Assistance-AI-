@@ -18,11 +18,11 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const funnelData = [
-    { stage: "Applied", count: 1200, fill: "hsl(var(--primary))" },
-    { stage: "Screening", count: 800, fill: "hsl(var(--primary))" },
-    { stage: "Interview", count: 450, fill: "hsl(var(--primary))" },
-    { stage: "Offer", count: 120, fill: "hsl(var(--primary))" },
-    { stage: "Hired", count: 95, fill: "hsl(var(--primary))" },
+    { stage: "Applied", count: 1200, fill: "var(--primary)" },
+    { stage: "Screening", count: 800, fill: "var(--primary)" },
+    { stage: "Interview", count: 450, fill: "var(--primary)" },
+    { stage: "Offer", count: 120, fill: "var(--primary)" },
+    { stage: "Hired", count: 95, fill: "var(--primary)" },
 ]
 
 const sourceData = [

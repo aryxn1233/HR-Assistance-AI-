@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { ModeToggle } from "@/components/ui/mode-toggle"
 
 export function Navbar() {
     return (
@@ -41,6 +42,7 @@ export function Navbar() {
                     <Bell className="h-5 w-5" />
                     <span className="bg-primary absolute top-2 right-2 h-2 w-2 rounded-full" />
                 </Button>
+                <ModeToggle />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -55,7 +57,7 @@ export function Navbar() {
                             <div className="flex flex-col space-y-1">
                                 <p className="text-sm font-medium leading-none">Sarah Connor</p>
                                 <p className="text-muted-foreground text-xs leading-none">
-                                    sarah@hireveo.ai
+                                    sarah@hirex.ai
                                 </p>
                             </div>
                         </DropdownMenuLabel>

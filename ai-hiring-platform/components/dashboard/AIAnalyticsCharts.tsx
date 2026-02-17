@@ -39,7 +39,7 @@ const skillData = [
 const chartConfig = {
     count: {
         label: "Candidates",
-        color: "hsl(var(--chart-1))",
+        color: "var(--chart-1)",
     },
 }
 
@@ -76,7 +76,7 @@ export function AIAnalyticsCharts() {
                             />
                             <Bar
                                 dataKey="count"
-                                fill="hsl(var(--primary))"
+                                fill="var(--primary)"
                                 radius={[4, 4, 0, 0]}
                                 barSize={40}
                             />
@@ -94,14 +94,14 @@ export function AIAnalyticsCharts() {
                 <CardContent>
                     <ResponsiveContainer width="100%" height={350}>
                         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
-                            <PolarGrid stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} />
-                            <PolarAngleAxis dataKey="subject" tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }} />
+                            <PolarGrid stroke="var(--muted-foreground)" strokeOpacity={0.2} />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--foreground)", fontSize: 12 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
                             <Radar
                                 name="Average"
                                 dataKey="B"
-                                stroke="hsl(var(--primary))"
-                                fill="hsl(var(--primary))"
+                                stroke="var(--primary)"
+                                fill="var(--primary)"
                                 fillOpacity={0.3}
                             />
                             <Tooltip />
