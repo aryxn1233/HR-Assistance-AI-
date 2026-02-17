@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Briefcase,
     Calendar,
@@ -39,78 +39,60 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import api from "@/lib/api"
+import Link from "next/link"
 
-// Mock Data
-const jobs = [
-    {
-        id: 1,
-        title: "Senior Frontend Engineer",
-        department: "Engineering",
-        location: "Remote",
-        type: "Full-time",
-        status: "Active",
-        candidates: 12,
-        posted: "2 days ago",
-    },
-    {
-        id: 2,
-        title: "Product Designer",
-        department: "Design",
-        location: "San Francisco, CA",
-        type: "Full-time",
-        status: "Active",
-        candidates: 8,
-        posted: "1 week ago",
-    },
-    {
-        id: 3,
-        title: "Backend Developer",
-        department: "Engineering",
-        location: "New York, NY",
-        type: "Contract",
-        status: "Draft",
-        candidates: 0,
-        posted: "Just now",
-    },
-    {
-        id: 4,
-        title: "Marketing Manager",
-        department: "Marketing",
-        location: "Remote",
-        type: "Full-time",
-        status: "Closed",
-        candidates: 45,
-        posted: "3 weeks ago",
-    },
-    {
-        id: 5,
-        title: "Data Scientist",
-        department: "Data",
-        location: "Boston, MA",
-        type: "Full-time",
-        status: "Active",
-        candidates: 23,
-        posted: "5 days ago",
-    },
-    {
-        id: 6,
-        title: "HR Specialist",
-        department: "People",
-        location: "Chicago, IL",
-        type: "Part-time",
-        status: "Active",
-        candidates: 15,
-        posted: "2 weeks ago",
-    },
-]
+interface Job {
+    id: string;
+    title: string;
+    department: string;
+    location: string;
+    type: string;
+    status: string;
+    createdAt: string;
+    // candidates count not in basic entity yet
+}
+
+import { CreateJobDialog } from "@/components/jobs/CreateJobDialog"
 
 export default function JobsPage() {
+    const [jobs, setJobs] = useState<Job[]>([])
+    const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState("all")
+
+    useEffect(() => {
+        fetchJobs();
+    }, []);
+
+    const fetchJobs = async () => {
+        try {
+            const response = await api.get('/jobs');
+            setJobs(response.data);
+        } catch (error) {
+            console.error("Failed to fetch jobs", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleJobCreated = () => {
+        fetchJobs();
+    };
 
     const filteredJobs =
         filterStatus === "all"
             ? jobs
             : jobs.filter((job) => job.status.toLowerCase() === filterStatus)
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(
+            Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+            'day'
+        );
+    }
+
+    if (loading) return <div className="p-8">Loading jobs...</div>
 
     return (
         <div className="flex flex-col gap-4 p-4 md:p-8">
@@ -121,9 +103,7 @@ export default function JobsPage() {
                         Manage your open positions and track candidates.
                     </p>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Create Job
-                </Button>
+                <CreateJobDialog onJobCreated={handleJobCreated} />
             </div>
 
             <Separator />
@@ -165,7 +145,7 @@ export default function JobsPage() {
                                 <div className="space-y-1">
                                     <CardTitle className="text-xl">{job.title}</CardTitle>
                                     <CardDescription className="flex items-center gap-1">
-                                        <Briefcase className="h-3 w-3" /> {job.department}
+                                        <Briefcase className="h-3 w-3" /> {job.department || 'Engineering'}
                                     </CardDescription>
                                 </div>
                                 <DropdownMenu>
@@ -198,9 +178,9 @@ export default function JobsPage() {
                                 <div className="flex items-center justify-between mt-2">
                                     <Badge
                                         variant={
-                                            job.status === "Active"
+                                            job.status === "PUBLISHED" // Assuming backend uses PUBLISHED
                                                 ? "default"
-                                                : job.status === "Draft"
+                                                : job.status === "DRAFT"
                                                     ? "secondary"
                                                     : "destructive"
                                         }
@@ -208,14 +188,14 @@ export default function JobsPage() {
                                         {job.status}
                                     </Badge>
                                     <div className="text-muted-foreground text-xs flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" /> {job.posted}
+                                        <Calendar className="h-3 w-3" /> {formatDate(job.createdAt)}
                                     </div>
                                 </div>
                             </div>
                         </CardContent>
                         <CardFooter className="bg-muted/50 flex items-center justify-between px-6 py-3">
                             <div className="text-muted-foreground text-sm flex items-center gap-1">
-                                <Users className="h-4 w-4" /> {job.candidates} Candidates
+                                <Users className="h-4 w-4" /> 0 Candidates
                             </div>
                             <Button variant="ghost" size="sm">
                                 View Details

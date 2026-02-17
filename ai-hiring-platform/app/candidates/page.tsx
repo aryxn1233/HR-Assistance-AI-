@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Calendar,
     ChevronDown,
@@ -46,78 +46,83 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import api from "@/lib/api"
+import Link from "next/link"
 
-// Mock Data
-const candidates = [
-    {
-        id: 1,
-        name: "Alex Johnson",
-        role: "Senior Frontend Engineer",
-        stage: "Interview",
-        score: 88,
-        appliedDate: "2023-10-15",
-        avatar: "/avatars/01.png",
-        initials: "AJ",
-    },
-    {
-        id: 2,
-        name: "Maria Garcia",
-        role: "Product Designer",
-        stage: "Screening",
-        score: 92,
-        appliedDate: "2023-10-18",
-        avatar: "/avatars/02.png",
-        initials: "MG",
-    },
-    {
-        id: 3,
-        name: "David Smith",
-        role: "Backend Developer",
-        stage: "Applied",
-        score: 0,
-        appliedDate: "2023-10-20",
-        avatar: "/avatars/03.png",
-        initials: "DS",
-    },
-    {
-        id: 4,
-        name: "Emily Chen",
-        role: "Data Scientist",
-        stage: "Offer",
-        score: 95,
-        appliedDate: "2023-10-10",
-        avatar: "/avatars/04.png",
-        initials: "EC",
-    },
-    {
-        id: 5,
-        name: "Michael Brown",
-        role: "Marketing Manager",
-        stage: "Hired",
-        score: 85,
-        appliedDate: "2023-09-25",
-        avatar: "/avatars/05.png",
-        initials: "MB",
-    },
-    {
-        id: 6,
-        name: "Sarah Wilson",
-        role: "HR Specialist",
-        stage: "Interview",
-        score: 78,
-        appliedDate: "2023-10-12",
-        avatar: "/avatars/06.png",
-        initials: "SW",
-    },
-]
+interface Candidate {
+    id: string;
+    userId: string;
+    skills: string[];
+    experience: number;
+    education: string[];
+    location: string;
+    user: {
+        firstName: string;
+        lastName: string;
+        email: string;
+    };
+    createdAt: string;
+}
+
+import { AddCandidateDialog } from "@/components/candidates/AddCandidateDialog"
+import { useRouter } from "next/navigation"
 
 export default function CandidatesPage() {
-    const [filterStage, setFilterStage] = useState("all")
+    const [candidates, setCandidates] = useState<Candidate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const router = useRouter();
 
-    const filteredCandidates =
-        filterStage === "all"
-            ? candidates
-            : candidates.filter((candidate) => candidate.stage.toLowerCase() === filterStage.toLowerCase())
+    useEffect(() => {
+        fetchCandidates();
+    }, []);
+
+    const fetchCandidates = async () => {
+        try {
+            const response = await api.get('/candidates');
+            setCandidates(response.data);
+        } catch (error) {
+            console.error("Failed to fetch candidates", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStartInterview = async (candidateId: string) => {
+        try {
+            // In a real app, we'd select a job. For MVP, we'll try to find an existing job or use a placeholder.
+            const jobsResponse = await api.get('/jobs');
+            const job = jobsResponse.data[0]; // Use the first available job
+
+            if (!job) {
+                alert("Please create a job first before starting an interview.");
+                return;
+            }
+
+            const response = await api.post('/interviews', {
+                candidateId: candidateId,
+                jobId: job.id,
+                status: 'Scheduled'
+            });
+
+            alert("Interview started!");
+            router.push(`/interview/room/${response.data.id}`);
+        } catch (error) {
+            console.error("Failed to start interview", error);
+            alert("Failed to start interview.");
+        }
+    };
+
+    const filteredCandidates = candidates.filter(c => {
+        const fullName = `${c.user?.firstName} ${c.user?.lastName}`.toLowerCase();
+        return fullName.includes(searchQuery.toLowerCase()) ||
+            c.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (c.skills && c.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
+    });
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString();
+    }
 
     return (
         <div className="flex flex-col gap-4 p-4 md:p-8">
@@ -125,12 +130,10 @@ export default function CandidatesPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Candidates</h2>
                     <p className="text-muted-foreground">
-                        View and manage candidate applications.
+                        Manage your candidate database and initiate AI interviews.
                     </p>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Candidate
-                </Button>
+                <AddCandidateDialog onCandidateAdded={fetchCandidates} />
             </div>
 
             <Separator />
@@ -140,26 +143,12 @@ export default function CandidatesPage() {
                     <div className="relative">
                         <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-4 w-4" />
                         <Input
-                            placeholder="Search candidates..."
-                            className="pl-8 w-[250px] md:w-[300px]"
+                            placeholder="Search candidates by name, email, or skill..."
+                            className="pl-8 w-[250px] md:w-[400px]"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Select value={filterStage} onValueChange={setFilterStage}>
-                        <SelectTrigger className="w-[180px]">
-                            <div className="flex items-center gap-2">
-                                <Filter className="h-4 w-4" />
-                                <SelectValue placeholder="Stage" />
-                            </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Stages</SelectItem>
-                            <SelectItem value="applied">Applied</SelectItem>
-                            <SelectItem value="screening">Screening</SelectItem>
-                            <SelectItem value="interview">Interview</SelectItem>
-                            <SelectItem value="offer">Offer</SelectItem>
-                            <SelectItem value="hired">Hired</SelectItem>
-                        </SelectContent>
-                    </Select>
                 </div>
                 <div className="text-muted-foreground text-sm">
                     Showing <strong>{filteredCandidates.length}</strong> candidates
@@ -170,7 +159,7 @@ export default function CandidatesPage() {
                 <CardHeader>
                     <CardTitle>All Candidates</CardTitle>
                     <CardDescription>
-                        A list of all candidates and their current status.
+                        A list of all candidates in your system.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -178,91 +167,74 @@ export default function CandidatesPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Candidate</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Stage</TableHead>
-                                <TableHead>Score</TableHead>
-                                <TableHead>Applied Date</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>Experience</TableHead>
+                                <TableHead>Skills</TableHead>
+                                <TableHead>Added Date</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredCandidates.map((candidate) => (
-                                <TableRow key={candidate.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarImage src={candidate.avatar} alt={candidate.name} />
-                                                <AvatarFallback>{candidate.initials}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="font-medium">{candidate.name}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{candidate.role}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant={
-                                                candidate.stage === "Hired"
-                                                    ? "default"
-                                                    : candidate.stage === "Offer"
-                                                        ? "secondary"
-                                                        : candidate.stage === "Interview"
-                                                            ? "outline"
-                                                            : "secondary"
-                                            }
-                                            className={
-                                                candidate.stage === "Interview" ? "border-primary text-primary" : ""
-                                            }
-                                        >
-                                            {candidate.stage}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {candidate.score > 0 ? (
-                                            <div className="flex items-center gap-2">
-                                                <div className="bg-muted h-2 w-16 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full ${candidate.score >= 90
-                                                                ? "bg-green-500"
-                                                                : candidate.score >= 80
-                                                                    ? "bg-yellow-500"
-                                                                    : "bg-red-500"
-                                                            }`}
-                                                        style={{ width: `${candidate.score}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-muted-foreground text-sm">{candidate.score}%</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground text-sm">N/A</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="text-muted-foreground h-4 w-4" />
-                                            <span>{candidate.appliedDate}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                                <DropdownMenuItem>Schedule Interview</DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-destructive">
-                                                    Reject Candidate
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-10">Loading candidates...</TableCell>
                                 </TableRow>
-                            ))}
+                            ) : filteredCandidates.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-10">No candidates found.</TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredCandidates.map((candidate) => {
+                                    const name = candidate.user ? `${candidate.user.firstName} ${candidate.user.lastName}` : 'Unknown';
+                                    const initials = name.split(" ").map(n => n[0]).join("");
+
+                                    return (
+                                        <TableRow key={candidate.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar>
+                                                        <AvatarFallback>{initials}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <div className="font-medium">{name}</div>
+                                                        <div className="text-xs text-muted-foreground">{candidate.user?.email}</div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{candidate.location}</TableCell>
+                                            <TableCell>{candidate.experience} years</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                    {candidate.skills?.slice(0, 3).map(skill => (
+                                                        <Badge key={skill} variant="outline" className="text-[10px] px-1 py-0">{skill}</Badge>
+                                                    ))}
+                                                    {(candidate.skills?.length || 0) > 3 && <span className="text-[10px] text-muted-foreground">+{(candidate.skills?.length || 0) - 3} more</span>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{formatDate(candidate.createdAt)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Open menu</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleStartInterview(candidate.id)}>
+                                                            Start AI Interview
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className="text-destructive">
+                                                            Delete Profile
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

@@ -1,12 +1,50 @@
 "use client"
 
+import { useEffect, useState } from "react";
 import { AIAnalyticsCharts } from "@/components/dashboard/AIAnalyticsCharts";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentCandidates } from "@/components/dashboard/RecentCandidates";
-import { Users, Video, Brain, TrendingUp } from "lucide-react";
+import { Users, Video, Brain, TrendingUp, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import api from "@/lib/api";
 
 export default function DashboardPage() {
+  const [metrics, setMetrics] = useState({
+    totalCandidates: 0,
+    activeJobs: 0,
+    completedInterviews: 0,
+    averageScore: 0,
+    trends: {
+      candidates: { value: 0, label: "from last month", positive: true },
+      interviews: { value: 0, label: "from last month", positive: true },
+      score: { value: 0, label: "improvement", positive: true },
+      acceptance: { value: 0, label: "from last month", positive: false }
+    }
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await api.get('/analytics/dashboard');
+        setMetrics(response.data);
+      } catch (error) {
+        console.error("Failed to fetch dashboard metrics", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMetrics();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -17,31 +55,31 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Candidates"
-          value="1,284"
+          value={metrics.totalCandidates.toString()}
           description="Candidates in pipeline"
           icon={Users}
-          trend={{ value: 12, label: "from last month", positive: true }}
+          trend={metrics.trends?.candidates}
         />
         <MetricCard
-          title="Interviews Completed"
-          value="432"
-          description="This month"
+          title="Active Jobs"
+          value={metrics.activeJobs.toString()}
+          description="Open positions"
+          icon={Video} // Maybe better icon? Briefcase is better but using what was there for now or lucide-react Briefcase
+          trend={{ value: 0, label: "new", positive: true }}
+        />
+        <MetricCard
+          title="Completed Interviews"
+          value={metrics.completedInterviews.toString()}
+          description="Total interviews Conducted"
           icon={Video}
-          trend={{ value: 8, label: "from last month", positive: true }}
+          trend={metrics.trends?.interviews}
         />
         <MetricCard
           title="Average AI Score"
-          value="84"
+          value={metrics.averageScore.toString()}
           description="Across all roles"
           icon={Brain}
-          trend={{ value: 2, label: "improvement", positive: true }}
-        />
-        <MetricCard
-          title="Joining Probability"
-          value="78%"
-          description="Predicted acceptance rate"
-          icon={TrendingUp}
-          trend={{ value: 5, label: "from last month", positive: false }}
+          trend={metrics.trends?.score}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

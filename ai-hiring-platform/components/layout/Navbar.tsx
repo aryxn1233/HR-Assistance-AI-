@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { Bell, Search } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
+
 
 import {
     Avatar,
@@ -23,6 +25,11 @@ import { Separator } from "@/components/ui/separator"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 
 export function Navbar() {
+    const { user, logout } = useAuth();
+    const fullName = user ? `${user.firstName} ${user.lastName}` : "Sarah Connor";
+    const email = user?.email || "sarah@hirex.ai";
+    const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "SC";
+
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
@@ -33,7 +40,7 @@ export function Navbar() {
                         <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-4 w-4" />
                         <Input
                             type="search"
-                            placeholder="Search candidates..."
+                            placeholder={user?.role === 'candidate' ? "Search for jobs..." : "Search candidates..."}
                             className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
                         />
                     </div>
@@ -48,16 +55,16 @@ export function Navbar() {
                         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                             <Avatar className="h-8 w-8">
                                 <AvatarImage src="/avatars/01.png" alt="@shadcn" />
-                                <AvatarFallback>SC</AvatarFallback>
+                                <AvatarFallback>{initials}</AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Sarah Connor</p>
+                                <p className="text-sm font-medium leading-none">{fullName}</p>
                                 <p className="text-muted-foreground text-xs leading-none">
-                                    sarah@hirex.ai
+                                    {email}
                                 </p>
                             </div>
                         </DropdownMenuLabel>
@@ -72,7 +79,7 @@ export function Navbar() {
                             Settings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={logout}>
                             Log out
                         </DropdownMenuItem>
                     </DropdownMenuContent>

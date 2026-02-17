@@ -27,6 +27,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/context/auth-context"
+
 
 // Menu items.
 const items = [
@@ -63,6 +65,11 @@ const items = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuth();
+  const fullName = user ? `${user.firstName} ${user.lastName}` : "Sarah Connor";
+  const role = user?.role || "Recruiter";
+  const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "HR";
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -101,11 +108,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src="/avatars/01.png" alt="User" />
-                <AvatarFallback className="rounded-lg">HR</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">Sarah Connor</span>
-                <span className="truncate text-xs">Recruiter</span>
+                <span className="truncate font-semibold">{fullName}</span>
+                <span className="truncate text-xs">{role}</span>
               </div>
             </div>
           </SidebarMenuItem>

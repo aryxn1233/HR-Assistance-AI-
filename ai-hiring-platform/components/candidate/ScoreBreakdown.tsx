@@ -3,7 +3,17 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Users, Brain, Activity } from "lucide-react"
 
-export function ScoreBreakdown() {
+interface ScoreBreakdownProps {
+    interview: any;
+}
+
+export function ScoreBreakdown({ interview }: ScoreBreakdownProps) {
+    if (!interview) return null;
+
+    const score = interview.score || 0;
+    const feedback = interview.feedback || {};
+    const rank = feedback.rank || "#1"; // Mock if not present
+
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
@@ -12,9 +22,9 @@ export function ScoreBreakdown() {
                     <Brain className="h-4 w-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-purple-600">92/100</div>
-                    <p className="text-xs text-muted-foreground">Top 5% of candidates</p>
-                    <Progress value={92} className="mt-2 h-2" />
+                    <div className="text-2xl font-bold text-purple-600">{score}/100</div>
+                    <p className="text-xs text-muted-foreground">Based on technical assessment</p>
+                    <Progress value={score} className="mt-2 h-2" />
                 </CardContent>
             </Card>
             <Card>
@@ -34,8 +44,8 @@ export function ScoreBreakdown() {
                     <TrendingUp className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">#1</div>
-                    <p className="text-xs text-muted-foreground">In Senior React Dev Role</p>
+                    <div className="text-2xl font-bold text-blue-600">{rank}</div>
+                    <p className="text-xs text-muted-foreground">In {interview.job?.title || 'Role'}</p>
                 </CardContent>
             </Card>
             <Card>
@@ -55,12 +65,13 @@ export function ScoreBreakdown() {
                     <CardDescription>Breakdown by competency areas</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* Mock breakdown if not in feedback */}
                     <div className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                             <span className="font-medium">Technical Skills</span>
-                            <span className="font-bold">95/100</span>
+                            <span className="font-bold">{score} / 100</span>
                         </div>
-                        <Progress value={95} className="h-2" />
+                        <Progress value={score} className="h-2" />
                     </div>
                     <div className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
@@ -68,20 +79,6 @@ export function ScoreBreakdown() {
                             <span className="font-bold">88/100</span>
                         </div>
                         <Progress value={88} className="h-2" />
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">Cultural Fit</span>
-                            <span className="font-bold">90/100</span>
-                        </div>
-                        <Progress value={90} className="h-2" />
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">Problem Solving</span>
-                            <span className="font-bold">92/100</span>
-                        </div>
-                        <Progress value={92} className="h-2" />
                     </div>
                 </CardContent>
             </Card>
