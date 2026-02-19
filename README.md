@@ -1,113 +1,119 @@
 📌 Overview
 
-This document explains all possible architecture approaches for conducting AI-powered avatar interviews inside our AI Hiring SaaS platform.
+This document explains the working architecture of our AI-powered Avatar Interview System built for a production SaaS environment.
 
-The system supports:
+The system enables:
 
-Resume-aware question generation
+Resume-aware dynamic questioning
 
-Real-time or turn-based avatar interaction
+AI-generated voice responses
 
-Voice synthesis and lip-sync
+Realistic avatar lip-sync
 
 Speech-to-text transcription
 
-AI-based evaluation and scoring
+AI evaluation & scoring
 
-Automated report generation
+Adaptive follow-up questioning
+
+Automated interview reports
 
 🏗 Architecture Options
 
-We support three possible architecture levels:
+We support three architectural approaches depending on realism, budget, and infrastructure requirements:
 
-Structured Turn-Based (SaaS Standard)
+Structured Turn-Based (Recommended SaaS Model)
 
 Semi Real-Time Streaming (Hybrid Model)
 
-True Real-Time Cinematic Avatar (Enterprise)
+True Real-Time Cinematic Avatar (Enterprise-Level)
 
-🟢 OPTION 1 — Structured Turn-Based Architecture (Recommended SaaS Model)
-🔹 Description
+🟢 OPTION 1 — Structured Turn-Based Architecture (Recommended)
+Description
 
-Each interview question is generated, rendered, played, and evaluated sequentially.
+Each interview question is generated and rendered sequentially.
+The avatar speaks, candidate responds, AI evaluates, and the next question is generated.
 
-This is the most stable and production-safe model for SaaS platforms.
+This is the most stable and scalable SaaS model.
 
-🔄 System Flow
+System Flow Diagram
 flowchart TD
-    A[Candidate Starts Interview] --> B[Backend Creates Interview Session]
+    A[Candidate Starts Interview] --> B[Backend Creates Session]
     B --> C[Gemini Generates Question]
     C --> D[ElevenLabs Generates Voice]
     D --> E[D-ID Renders Avatar Video]
     E --> F[Frontend Plays Video]
     F --> G[Candidate Responds]
-    G --> H[Speech-to-Text Transcription]
+    G --> H[Speech-to-Text]
     H --> I[Gemini Evaluates Answer]
-    I --> J[Adaptive Logic Determines Next Question]
+    I --> J[Adaptive Logic]
     J --> C
-    I --> K[Final Report Generated]
+    I --> K[Generate Final Report]
 
-🧠 Technologies Used
+Technology Stack
 
-Gemini (Question Generation + Evaluation)
+Gemini API – Question Generation & Evaluation
 
-ElevenLabs (Text-to-Speech)
+ElevenLabs – Text-to-Speech
 
-D-ID (Avatar + Lip Sync)
+D-ID – Avatar Rendering & Lip Sync
 
-AssemblyAI / Whisper (Speech-to-Text)
+AssemblyAI / Whisper – Speech-to-Text
 
 NestJS Backend
 
 PostgreSQL
 
-AWS S3
+AWS S3 Storage
 
-💰 Estimated Cost Per Interview (10–15 min)
+Cost Per Interview (10–15 min)
 Service	Estimated Cost
 Gemini	$0.50–1.00
 ElevenLabs	$0.30–0.80
 D-ID	$1.50–3.00
 STT	$0.40–0.70
 Total	$3–6 per interview
-✅ Advantages
+Advantages
 
 High realism
 
+Commercial-ready
+
 Stable architecture
 
-Easy scaling
+Easy to scale
 
-Lower infrastructure complexity
+Industry standard approach
 
-Market-proven approach
+Limitations
 
-❌ Limitations
+2–5 second delay between questions
 
-2–5 second rendering delay per question
+Not fully real-time streaming
 
-Not true continuous streaming
+🟡 OPTION 2 — Semi Real-Time Streaming Avatar (Hybrid)
+Description
 
-🟡 OPTION 2 — Semi Real-Time Streaming Avatar (Hybrid Model)
-🔹 Description
+The avatar runs directly in the browser.
+LLM streams text.
+TTS streams audio.
+Avatar mouth movement is driven by audio amplitude.
 
-Instead of generating full video per question, the avatar runs client-side and responds using streaming text + streaming audio.
+No video rendering required.
 
-No server-side video rendering required.
-
-🔄 System Flow
+System Flow Diagram
 flowchart TD
-    A[Candidate Starts Interview] --> B[Backend Creates Session]
+    A[Start Interview] --> B[Create Session]
     B --> C[Gemini Streaming Response]
-    C --> D[ElevenLabs Streaming Audio]
-    D --> E[Browser Avatar Animates via Audio Amplitude]
-    E --> F[Candidate Responds]
-    F --> G[Streaming STT]
-    G --> H[Gemini Evaluates]
+    C --> D[Streaming TTS]
+    D --> E[Browser Avatar Animates via Audio]
+    E --> F[Candidate Response]
+    F --> G[Streaming Speech-to-Text]
+    G --> H[Gemini Evaluation]
     H --> C
-    H --> I[Final Report Generated]
+    H --> I[Generate Final Report]
 
-🧠 Technologies Used
+Technology Stack
 
 Gemini Streaming API
 
@@ -115,60 +121,53 @@ ElevenLabs Streaming TTS
 
 Three.js / React Three Fiber Avatar
 
-Audio-driven mouth animation
-
 WebRTC
 
 NestJS Backend
 
 PostgreSQL
 
-💰 Estimated Cost Per Interview
+Cost Per Interview
 Service	Estimated Cost
 Gemini	$0.50–1.00
 ElevenLabs	$0.30–0.80
 STT	$0.40–0.70
 Total	$1.5–3 per interview
-
-No D-ID costs.
-
-✅ Advantages
+Advantages
 
 Feels real-time
 
-No rendering delay
+Lower cost
 
-Lower per-interview cost
+No rendering delay
 
 More scalable long-term
 
-❌ Limitations
+Limitations
 
 Slightly less photorealistic
 
-More engineering effort required
-
-Custom avatar animation needed
+Requires custom avatar engineering
 
 🔴 OPTION 3 — True Real-Time Cinematic Avatar (Enterprise)
-🔹 Description
+Description
 
-Full real-time avatar rendered on GPU infrastructure using game engine technology.
+Full real-time digital human using GPU infrastructure and game engine rendering.
 
-Hollywood-level digital human.
+Used in enterprise research or simulation environments.
 
-🔄 System Flow
+System Flow Diagram
 flowchart TD
-    A[Candidate Starts Interview] --> B[LLM Streaming]
+    A[Start Interview] --> B[Streaming LLM]
     B --> C[Streaming TTS]
     C --> D[NVIDIA Audio2Face]
-    D --> E[Unreal Engine MetaHuman Rendering]
-    E --> F[WebRTC Stream to Browser]
-    F --> G[Candidate Responds]
+    D --> E[Unreal Engine Rendering]
+    E --> F[WebRTC Stream]
+    F --> G[Candidate Response]
     G --> H[Streaming STT]
     H --> B
 
-🧠 Technologies Used
+Technology Stack
 
 Streaming LLM
 
@@ -178,77 +177,51 @@ NVIDIA Audio2Face
 
 Unreal Engine MetaHuman
 
-Dedicated GPU Server
+Dedicated GPU Servers
 
 WebRTC
 
-💰 Estimated Infrastructure Cost
-Item	Monthly Cost
+Infrastructure Cost
+Item	Estimated Monthly Cost
 GPU Server	$800–2000+
-DevOps	High
-Maintenance	High
-
-Per interview cost becomes minimal, but fixed infrastructure cost is high.
-
-✅ Advantages
+DevOps Maintenance	High
+Rendering Infrastructure	High
+Advantages
 
 Ultra realistic
 
+True real-time conversation
+
 No visible delay
 
-True conversational experience
+Limitations
 
-❌ Limitations
+Very high infrastructure cost
 
-Extremely complex
-
-High infrastructure cost
+Complex engineering
 
 Overkill for most HR SaaS use cases
 
 📊 Architecture Comparison
 Feature	Option 1	Option 2	Option 3
-Realism	⭐⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐⭐
-Real-Time	❌	⚠️ Semi	✅
+Realism	High	Medium-High	Very High
+Real-Time	No	Partial	Yes
 Complexity	Low	Medium	Very High
 Cost Per Interview	$3–6	$1.5–3	Low (after infra)
 Infrastructure	Simple	Moderate	Heavy GPU
-🎯 Recommended Approach
+🧠 Adaptive Interview Logic
 
-For AI Hiring SaaS:
+During interview:
 
-Start with Option 1 (Structured Turn-Based).
+If technical score < 5 → Ask deeper technical follow-up
 
-Reasons:
+If communication score < 5 → Ask explanation-based question
 
-Stable
+If performance strong → Increase difficulty
 
-Cost predictable
+Max 8–10 questions per session
 
-Easier to scale
-
-Fast to deploy
-
-Industry standard
-
-Option 2 can be implemented later for optimization.
-
-Option 3 is enterprise-level and not required unless targeting high-end simulation platforms.
-
-🧠 Interview Flow Logic
-Adaptive Questioning
-
-If technical score < 5 → ask deeper technical question
-
-If communication score < 5 → ask explanation-based question
-
-If strong performance → increase difficulty
-
-Max 8–10 questions
-
-📊 Final Report Structure
-
-After interview completion:
+📊 Final Interview Report Includes
 
 Overall Score (0–100)
 
@@ -258,60 +231,30 @@ Strengths
 
 Weaknesses
 
-Hiring Recommendation
+Hiring Recommendation (Strong Hire / Hire / No Hire)
 
 Detailed JSON for analytics
 
-🔐 Security Considerations
+🔐 Security & Compliance
 
-JWT authentication
+JWT protected endpoints
 
-API keys stored in .env
+API keys stored in environment variables
 
-Signed S3 URLs
+Signed S3 URLs for media
 
 No AI keys exposed to frontend
 
-Rate limiting for LLM calls
+Role-based access control
 
 📈 Scalability Strategy
 
-Async AI calls
+Async AI processing
 
-Background processing
+Background workers
 
 Stateless frontend
 
-Store interview state in database
+Interview state stored in database
 
-Horizontal scaling for backend services
-
-💼 Business Model Considerations
-
-If average cost per interview is ~$4:
-
-Possible pricing model:
-
-$15–25 per AI interview
-
-Volume discounts
-
-Enterprise subscription tier
-
-This ensures sustainable margins.
-
-🚀 Conclusion
-
-We provide multiple architecture options depending on:
-
-Budget
-
-Desired realism
-
-Infrastructure readiness
-
-Scalability goals
-
-The recommended path for production SaaS is:
-
-Structured Turn-Based Architecture with avatar + adaptive AI logic.
+Horizontal scaling for backend
