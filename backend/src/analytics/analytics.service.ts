@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from '../jobs/job.entity';
 import { Candidate } from '../candidates/candidate.entity';
-import { Interview } from '../interviews/interview.entity';
+import { Interview } from '../interviews/entities/interview.entity';
 
 @Injectable()
 export class AnalyticsService {

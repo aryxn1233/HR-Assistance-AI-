@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request } from '@nestjs/common';
 import { InterviewsService } from './interviews.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -19,7 +19,19 @@ export class InterviewsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get()
-    findAll() {
-        return this.interviewsService.findAll();
+    findAll(@Request() req) {
+        return this.interviewsService.findAll(req.user.userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post(':id/start')
+    startSession(@Param('id') id: string) {
+        return this.interviewsService.startSession(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post(':id/answer')
+    submitAnswer(@Param('id') id: string, @Body('answer') answer: string) {
+        return this.interviewsService.submitAnswer(id, answer);
     }
 }

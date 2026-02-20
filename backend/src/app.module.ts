@@ -10,6 +10,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+import { GeminiModule } from './gemini/gemini.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,8 +35,8 @@ import { AppService } from './app.service';
     JobsModule,
     CandidatesModule,
     InterviewsModule,
-    AIModule,
     AnalyticsModule,
+    GeminiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

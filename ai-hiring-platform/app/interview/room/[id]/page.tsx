@@ -1,186 +1,259 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useRef } from "react"
-import { useParams } from "next/navigation"
-import { io, Socket } from "socket.io-client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Mic, Send, Video as VideoIcon, VideoOff } from "lucide-react"
+import { useState, useEffect, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Mic, MicOff, Send, Loader2, Volume2, VolumeX } from "lucide-react";
+import api from "@/lib/api";
+import SafeAvatar from "@/components/interview/SafeAvatar";
+import { WebcamPreview } from "@/components/interview/WebcamPreview";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { useWebSpeech } from "@/hooks/useWebSpeech";
 
-interface Message {
-    role: 'ai' | 'user';
-    content: string;
-}
-
-export default function InterviewRoom() {
+export default function InterviewRoomPage() {
     const params = useParams();
-    const id = params?.id as string;
-    const [socket, setSocket] = useState<Socket | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [input, setInput] = useState("");
-    const [connected, setConnected] = useState(false);
-    const [status, setStatus] = useState("Connecting...");
+    const router = useRouter();
+    const interviewId = params.id as string;
 
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const [interview, setInterview] = useState<any>(null);
+    const [currentQuestion, setCurrentQuestion] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
+    const [messages, setMessages] = useState<any[]>([]);
 
+    // Hooks
+    const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
+    const { transcript, isListening, startListening, stopListening } = useWebSpeech();
+
+    // Local transcript state to handle manual edits if needed (optional) 
+    // or just to hold the value before submitting
+    const [answerText, setAnswerText] = useState("");
+
+    // Update answer text from speech transcript
     useEffect(() => {
-        if (!id) return;
-
-        // Connect to WebSocket
-        const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000');
-
-        newSocket.on('connect', () => {
-            console.log('Connected to WebSocket');
-            setConnected(true);
-            setStatus("Connected");
-            newSocket.emit('joinRoom', { interviewId: id });
-        });
-
-        newSocket.on('disconnect', () => {
-            console.log('Disconnected');
-            setConnected(false);
-            setStatus("Disconnected");
-        });
-
-        newSocket.on('question', (data: { text: string }) => {
-            setMessages(prev => [...prev, { role: 'ai', content: data.text }]);
-            setStatus("Waiting for your answer...");
-        });
-
-        newSocket.on('interviewEnd', (data: { message: string }) => {
-            setMessages(prev => [...prev, { role: 'ai', content: data.message }]);
-            setStatus("Interview Completed");
-            newSocket.disconnect();
-        });
-
-        setSocket(newSocket);
-
-        return () => {
-            newSocket.disconnect();
+        if (transcript) {
+            setAnswerText(prev => prev ? prev + " " + transcript : transcript);
         }
-    }, [id]);
+    }, [transcript]);
 
-    useEffect(() => {
-        // Scroll to bottom
-        if (scrollAreaRef.current) {
-            const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollContainer) {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            }
-        }
-    }, [messages]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const handleSend = () => {
-        if (!input.trim() || !socket) return;
-
-        // Add user message immediately for UI responsiveness
-        setMessages(prev => [...prev, { role: 'user', content: input }]);
-
-        // Send to backend
-        socket.emit('submitAnswer', { interviewId: id, answer: input });
-
-        setInput("");
-        setStatus("AI is thinking...");
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    return (
-        <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 p-4 md:grid md:grid-cols-3 md:gap-8 md:p-8">
-            <div className="md:col-span-2 flex flex-col gap-4 h-full">
-                {/* Video Area (Placeholder) */}
-                <Card className="flex-1 bg-black relative overflow-hidden flex items-center justify-center">
-                    <div className="absolute top-4 right-4 flex gap-2">
-                        <div className="bg-red-500 w-3 h-3 rounded-full animate-pulse"></div>
-                        <span className="text-white text-xs font-mono">REC</span>
-                    </div>
-                    <div className="text-white/50 flex flex-col items-center">
-                        <VideoIcon className="h-16 w-16 mb-4 opacity-50" />
-                        <p>Camera Feed Preview</p>
-                    </div>
-                    <div className="absolute bottom-4 left-4 right-4 flex justify-center gap-4">
-                        <Button variant="secondary" size="icon" className="rounded-full">
-                            <Mic className="h-4 w-4" />
-                        </Button>
-                        <Button variant="secondary" size="icon" className="rounded-full">
-                            <VideoOff className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </Card>
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, answerText]);
 
-                {/* Current Question Display */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Current Question</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-lg font-semibold leading-relaxed">
-                            {messages.filter(m => m.role === 'ai').slice(-1)[0]?.content || "Waiting for interviewer..."}
-                        </p>
-                    </CardContent>
-                </Card>
+    const [hasStarted, setHasStarted] = useState(false);
+
+    // Initial Load
+    useEffect(() => {
+        const initSession = async () => {
+            try {
+                // Check status first or directly start/resume
+                const response = await api.post(`/interviews/${interviewId}/start`);
+                const data = response.data;
+
+                if (data.status === 'completed') {
+                    router.push(`/candidates/interviews/${interviewId}/report`); // Redirect to report
+                    return;
+                }
+
+                if (data.question) {
+                    setCurrentQuestion(data.question);
+                    // Add to message history if not there
+                    setMessages(prev => {
+                        if (prev.find(m => m.id === data.question.id)) return prev;
+                        return [...prev, { role: 'ai', content: data.question.questionText, id: data.question.id }];
+                    });
+
+                    // Delay auto-speak until user clicks Start
+                }
+
+                // Fetch full interview details for context if needed
+                const details = await api.get(`/interviews/${interviewId}`);
+                setInterview(details.data);
+
+            } catch (error) {
+                console.error("Failed to start session", error);
+                // Handle error (e.g. invalid ID)
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (interviewId) {
+            initSession();
+        }
+
+        return () => {
+            stopSpeaking();
+            stopListening();
+        };
+    }, [interviewId]);
+
+    const startInterview = () => {
+        setHasStarted(true);
+        if (currentQuestion) {
+            speak(currentQuestion.questionText);
+        }
+    };
+
+    const handleAnswerSubmit = async () => {
+        if (!answerText.trim()) return;
+
+        const submissionText = answerText;
+        setProcessing(true);
+        stopSpeaking(); // Ensure AI stops talking
+
+        // Add user answer to UI immediately
+        const userMsg = { role: 'user', content: submissionText };
+        setMessages(prev => [...prev, userMsg]);
+        setAnswerText(""); // Clear input
+
+        try {
+            const response = await api.post(`/interviews/${interviewId}/answer`, { answer: userMsg.content });
+            const data = response.data;
+
+            if (data.status === 'completed') {
+                router.push(`/candidates/interviews/${interviewId}/report`);
+                return;
+            }
+
+            if (data.question) {
+                setCurrentQuestion(data.question);
+                setMessages(prev => [...prev, { role: 'ai', content: data.question.questionText, id: data.question.id }]);
+                // Auto-speak new question
+                setTimeout(() => speak(data.question.questionText), 500);
+            }
+
+        } catch (error) {
+            console.error("Failed to submit answer", error);
+            // Revert or show error
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const toggleRecording = () => {
+        if (isListening) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    };
+
+    if (loading) {
+        return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+    }
+
+    return (
+        <div className="flex h-screen bg-background overflow-hidden relative">
+            {!hasStarted && (
+                <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center text-white p-4">
+                    <h1 className="text-3xl font-bold mb-4">Ready for your Interview?</h1>
+                    <p className="text-gray-300 mb-8 max-w-md text-center">
+                        You are about to start a voice-based interview with our AI Avatar.
+                        Please ensure your microphone is enabled and your volume is up.
+                    </p>
+                    <Button onClick={startInterview} size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 rounded-full">
+                        Start Interview
+                    </Button>
+                </div>
+            )}
+
+            {/* Left: Avatar */}
+            <div className="w-1/2 bg-black relative flex items-center justify-center border-r border-border">
+                <SafeAvatar isSpeaking={isSpeaking} />
+
+                {/* Status Overlay */}
+                <div className="absolute top-6 left-6 z-10">
+                    <Badge variant={isSpeaking ? "default" : "secondary"} className="text-sm px-3 py-1">
+                        {isSpeaking ? <span className="flex items-center gap-2"><Volume2 className="h-4 w-4" /> AI Speaking</span> : <span className="flex items-center gap-2"><VolumeX className="h-4 w-4" /> AI Idle</span>}
+                    </Badge>
+                </div>
+
+                {/* Candidate Webcam (PIP) */}
+                <div className="absolute bottom-6 right-6 z-20 w-64 shadow-2xl rounded-xl overflow-hidden border-2 border-slate-800">
+                    <WebcamPreview />
+                </div>
             </div>
 
-            <div className="flex flex-col h-full gap-4">
-                <Card className="flex-1 flex flex-col shadow-lg border-l-4 border-l-blue-500/20">
-                    <CardHeader className="border-b bg-muted/20">
-                        <CardTitle className="flex items-center justify-between">
-                            <span>Interview Chat</span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                {status}
-                            </span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 p-0 overflow-hidden relative">
-                        <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
-                            <div className="flex flex-col gap-4 pb-4">
-                                {messages.map((msg, i) => (
-                                    <div
-                                        key={i}
-                                        className={`flex gap-3 ${msg.role === 'user' ? "flex-row-reverse" : ""
-                                            }`}
-                                    >
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarFallback>
-                                                {msg.role === 'user' ? "ME" : "AI"}
-                                            </AvatarFallback>
-                                            <AvatarImage src={msg.role === 'ai' ? "/ai-avatar.png" : undefined} />
-                                        </Avatar>
-                                        <div
-                                            className={`rounded-lg p-3 text-sm max-w-[80%] ${msg.role === 'user'
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "bg-muted"
-                                                }`}
-                                        >
-                                            {msg.content}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    </CardContent>
-                    <div className="p-4 border-t mt-auto">
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                handleSend();
-                            }}
-                            className="flex gap-2"
-                        >
-                            <Input
-                                placeholder="Type your answer..."
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                disabled={!connected || status.includes("thinking")}
-                            />
-                            <Button type="submit" size="icon" disabled={!connected || status.includes("thinking")}>
-                                <Send className="h-4 w-4" />
-                            </Button>
-                        </form>
+            {/* Right: Interaction */}
+            <div className="w-1/2 flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+                {/* Header */}
+                <div className="p-6 border-b flex justify-between items-center bg-white dark:bg-slate-900 shadow-sm z-10">
+                    <div>
+                        <h2 className="text-xl font-bold tracking-tight">{interview?.job?.title || "Interview Session"}</h2>
+                        <p className="text-sm text-muted-foreground mt-1">Candidate: {interview?.candidate?.user?.firstName}</p>
                     </div>
-                </Card>
+                    <Badge variant="outline" className="text-lg px-3 py-1">Q{currentQuestion?.orderNumber || 1}</Badge>
+                </div>
+
+                {/* Chat/Transcript Area */}
+                <ScrollArea className="flex-1 p-6">
+                    <div className="space-y-6">
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] rounded-2xl p-5 shadow-sm text-base leading-relaxed ${msg.role === 'user'
+                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-tl-none'
+                                    }`}>
+                                    <p>{msg.content}</p>
+                                </div>
+                            </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </div>
+                </ScrollArea>
+
+                {/* Controls */}
+                <div className="p-6 border-t bg-white dark:bg-slate-900">
+                    <div className="mb-4 relative">
+                        <textarea
+                            value={answerText}
+                            onChange={(e) => setAnswerText(e.target.value)}
+                            className="w-full h-32 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 resize-none focus:ring-2 focus:ring-primary focus:outline-none text-base"
+                            placeholder={isListening ? "Listening..." : "Type your answer or use microphone..."}
+                            disabled={processing}
+                        />
+                        {isListening && (
+                            <div className="absolute bottom-4 right-4 animate-pulse text-red-500">
+                                <Mic className="h-5 w-5" />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                        <Button
+                            variant={isListening ? "destructive" : "outline"}
+                            onClick={toggleRecording}
+                            disabled={processing}
+                            className="w-[160px] h-12 text-base"
+                        >
+                            {isListening ? <><MicOff className="mr-2 h-5 w-5" /> Stop Rec</> : <><Mic className="mr-2 h-5 w-5" /> Start Rec</>}
+                        </Button>
+
+                        <div className="text-sm font-medium text-muted-foreground hidden md:block">
+                            {isListening ? "Listening..." : "Ready to answer"}
+                        </div>
+
+                        <Button
+                            onClick={handleAnswerSubmit}
+                            disabled={!answerText.trim() || processing}
+                            className="w-[160px] h-12 text-base"
+                        >
+                            {processing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
+                            Submit
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
-    )
+    );
 }

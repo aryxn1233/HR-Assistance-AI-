@@ -3,11 +3,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { InterviewsService } from './interviews.service';
 import { InterviewsController } from './interviews.controller';
 import { InterviewGateway } from './interview.gateway';
-import { Interview } from './interview.entity';
+import { Interview } from './entities/interview.entity';
+import { InterviewQuestion } from './entities/interview-question.entity';
+import { InterviewAnswer } from './entities/interview-answer.entity';
+import { InterviewReport } from './entities/interview-report.entity';
 import { AIModule } from '../ai/ai.module';
+import { GeminiModule } from '../gemini/gemini.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Interview]), AIModule],
+    imports: [
+        TypeOrmModule.forFeature([Interview, InterviewQuestion, InterviewAnswer, InterviewReport]),
+        AIModule,
+        GeminiModule
+    ],
     controllers: [InterviewsController],
     providers: [InterviewsService, InterviewGateway],
     exports: [InterviewsService],

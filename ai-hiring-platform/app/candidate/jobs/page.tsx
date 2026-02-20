@@ -45,8 +45,16 @@ export default function FindJobsPage() {
                     api.get('/jobs'),
                     api.get('/candidates/applications')
                 ])
-                setJobs(jobsRes.data)
-                setAppliedJobs(appsRes.data.map((app: any) => app.jobId))
+                const safeJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
+                if (!Array.isArray(jobsRes.data)) {
+                    console.warn("Jobs data is not an array:", jobsRes.data);
+                }
+                setJobs(safeJobs)
+                const safeApps = Array.isArray(appsRes.data) ? appsRes.data : [];
+                if (!Array.isArray(appsRes.data)) {
+                    console.warn("Applications data is not an array:", appsRes.data);
+                }
+                setAppliedJobs(safeApps.map((app: any) => app.jobId))
             } catch (error) {
                 console.error("Failed to fetch jobs", error)
             } finally {

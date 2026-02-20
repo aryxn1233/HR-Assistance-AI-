@@ -4,7 +4,7 @@ import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 import { Job } from '../jobs/job.entity';
 import { Candidate } from '../candidates/candidate.entity';
-import { Interview } from '../interviews/interview.entity';
+import { Interview } from '../interviews/entities/interview.entity';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Job, Candidate, Interview])],

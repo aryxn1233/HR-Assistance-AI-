@@ -34,8 +34,12 @@ export default function CandidateInterviewsPage() {
         fetchInterviews()
     }, [])
 
-    const upcomingInterviews = interviews.filter(i => i.status === 'Scheduled' || i.status === 'In Progress')
-    const pastInterviews = interviews.filter(i => i.status === 'Completed')
+    const safeInterviews = Array.isArray(interviews) ? interviews : [];
+    if (!Array.isArray(interviews)) {
+        console.warn("Interviews data is not an array:", interviews);
+    }
+    const upcomingInterviews = safeInterviews.filter(i => i.status === 'Scheduled' || i.status === 'In Progress')
+    const pastInterviews = safeInterviews.filter(i => i.status === 'Completed')
 
     if (loading) return (
         <div className="flex items-center justify-center p-20">
