@@ -72,7 +72,6 @@ export default function HeyGenAvatar({
                 voice: {
                     voiceId: voiceId,
                 },
-                video_encoding: "VP8" // Explicitly use VP8 for better compatibility if needed
             });
 
             setSessionData(res);
@@ -122,7 +121,7 @@ export default function HeyGenAvatar({
                 try {
                     await avatar.speak({
                         text: e.detail.text,
-                        task_mode: TaskMode.REPEAT,
+                        taskMode: TaskMode.ASYNC,
                     });
                 } catch (err) {
                     console.error("HeyGen: Speak command failed", err);
