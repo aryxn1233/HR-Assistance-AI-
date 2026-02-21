@@ -26,6 +26,8 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 export default function CandidateReportsPage() {
     const [report, setReport] = useState<any>(null)
