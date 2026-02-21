@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, MicOff, Send, Loader2, Volume2, VolumeX } from "lucide-react";
 import api from "@/lib/api";
-import SafeAvatar from "@/components/interview/SafeAvatar";
+import AvatarComponent from "@/components/interview/AvatarComponent";
 import { WebcamPreview } from "@/components/interview/WebcamPreview";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { useWebSpeech } from "@/hooks/useWebSpeech";
+import { avatarStateManager } from "@/lib/InterviewAvatarStateManager";
 
 export default function InterviewRoomPage() {
     const params = useParams();
@@ -117,6 +118,7 @@ export default function InterviewRoomPage() {
         setAnswerText(""); // Clear input
 
         try {
+            avatarStateManager.setTHINKING();
             const response = await api.post(`/interviews/${interviewId}/answer`, { answer: userMsg.content });
             const data = response.data;
 
@@ -129,12 +131,13 @@ export default function InterviewRoomPage() {
                 setCurrentQuestion(data.question);
                 setMessages(prev => [...prev, { role: 'ai', content: data.question.questionText, id: data.question.id }]);
                 // Auto-speak new question
-                setTimeout(() => speak(data.question.questionText), 500);
+                // Passing data.question.audioUrl if available from backend (user mentioned it returns audio)
+                setTimeout(() => speak(data.question.questionText, data.question.audioUrl), 500);
             }
 
         } catch (error) {
             console.error("Failed to submit answer", error);
-            // Revert or show error
+            avatarStateManager.setIDLE();
         } finally {
             setProcessing(false);
         }
@@ -169,7 +172,7 @@ export default function InterviewRoomPage() {
 
             {/* Left: Avatar */}
             <div className="w-1/2 bg-black relative flex items-center justify-center border-r border-border">
-                <SafeAvatar isSpeaking={isSpeaking} />
+                <AvatarComponent />
 
                 {/* Status Overlay */}
                 <div className="absolute top-6 left-6 z-10">
