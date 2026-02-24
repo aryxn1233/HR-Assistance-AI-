@@ -1,72 +1,105 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function useWebSpeech() {
-    const [transcript, setTranscript] = useState("");
+    const [interimTranscript, setInterimTranscript] = useState("");
+    const [finalTranscript, setFinalTranscript] = useState("");
     const [isListening, setIsListening] = useState(false);
-    const recognitionRef = useRef<any>(null); // Type check for window.webkitSpeechRecognition
+    const [isSupported, setIsSupported] = useState(true);
+    const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
-        if (typeof window !== "undefined" && (window as any).webkitSpeechRecognition) {
-            const SpeechRecognition = (window as any).webkitSpeechRecognition;
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true;
-            recognitionRef.current.interimResults = true;
-            recognitionRef.current.lang = 'en-US';
+        if (typeof window === "undefined") return;
+        const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SR) {
+            setIsSupported(false);
+            console.warn("Speech Recognition not supported in this browser.");
+            return;
+        }
 
-            recognitionRef.current.onresult = (event: any) => {
-                let finalTranscript = "";
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        // interim
-                    }
-                }
-                // Simplified: just grab the latest
-                const current = Array.from(event.results)
-                    .map((result: any) => result[0].transcript)
-                    .join(' ');
-                setTranscript(current);
-            };
+        const recognition = new SR();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
 
-            recognitionRef.current.onend = () => {
-                setIsListening(false);
-            };
+        recognition.onresult = (event: any) => {
+            let interim = "";
+            let final = "";
 
-            recognitionRef.current.onerror = (event: any) => {
-                console.warn("Speech recognition error", event.error);
-                if (event.error === 'not-allowed') {
-                    setIsListening(false);
-                } else if (event.error === 'network') {
-                    // Ignore network errors or try to re-init if needed, but don't hard stop UI if ephemeral
-                    setIsListening(false);
-                } else if (event.error === 'no-speech') {
-                    // Ignore no-speech, it just means silence
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const text = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    final += text + " ";
                 } else {
-                    setIsListening(false);
+                    interim += text;
                 }
             }
+
+            if (final) {
+                setFinalTranscript(prev => prev + final);
+            }
+            setInterimTranscript(interim);
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+            setInterimTranscript("");
+        };
+
+        recognition.onerror = (event: any) => {
+            if (event.error !== 'no-speech') {
+                console.warn("Speech recognition error:", event.error);
+            }
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                setIsSupported(false);
+            }
+            setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+    }, []);
+
+    const startListening = useCallback(() => {
+        if (!recognitionRef.current) return;
+        // Reset transcripts for a fresh start
+        setFinalTranscript("");
+        setInterimTranscript("");
+        try {
+            recognitionRef.current.start();
+            setIsListening(true);
+        } catch (e) {
+            // Already running — stop and restart
+            recognitionRef.current.stop();
+            setTimeout(() => {
+                setFinalTranscript("");
+                setInterimTranscript("");
+                recognitionRef.current?.start();
+                setIsListening(true);
+            }, 300);
         }
     }, []);
 
-    const startListening = () => {
-        if (recognitionRef.current) {
-            setTranscript("");
-            recognitionRef.current.start();
-            setIsListening(true);
-        } else {
-            alert("Speech Recognition not supported in this browser.");
-        }
-    };
-
-    const stopListening = () => {
+    const stopListening = useCallback(() => {
         if (recognitionRef.current) {
             recognitionRef.current.stop();
-            setIsListening(false);
         }
-    };
+        setIsListening(false);
+    }, []);
 
-    return { transcript, isListening, startListening, stopListening };
+    const resetTranscript = useCallback(() => {
+        setFinalTranscript("");
+        setInterimTranscript("");
+    }, []);
+
+    return {
+        transcript: finalTranscript,         // confirmed spoken text
+        interimTranscript,                   // live in-progress text
+        isListening,
+        isSupported,
+        startListening,
+        stopListening,
+        resetTranscript,
+    };
 }

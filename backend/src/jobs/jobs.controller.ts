@@ -29,7 +29,13 @@ export class JobsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.jobsService.remove(id);
+    remove(@Param('id') id: string, @Request() req) {
+        return this.jobsService.remove(id, req.user.userId, req.user.role);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get(':id/applications')
+    getApplications(@Param('id') jobId: string, @Request() req) {
+        return this.jobsService.getApplicationsByJob(jobId, req.user.userId);
     }
 }

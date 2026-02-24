@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Request, Param, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { CandidatesService } from './candidates.service';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -29,6 +29,25 @@ export class CandidatesController {
         await this.candidatesService.update(req.user.userId, { avatarUrl });
 
         return { avatarUrl };
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post('resume-upload')
+    @UseInterceptors(FileInterceptor('file', {
+        storage: diskStorage({
+            destination: './uploads/resumes',
+            filename: (req, file, cb) => {
+                const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+                cb(null, `${randomName}${extname(file.originalname)}`);
+            },
+        }),
+    }))
+    async uploadResume(@UploadedFile() file: any, @Request() req) {
+        const port = process.env.PORT || 3003;
+        const apiBaseUrl = process.env.API_URL || `http://localhost:${port}`;
+        const fileUrl = `${apiBaseUrl}/uploads/resumes/${file.filename}`;
+
+        return this.candidatesService.uploadResume(req.user.userId, file.path, fileUrl);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -72,6 +91,42 @@ export class CandidatesController {
     @Get('stats')
     getStats(@Request() req) {
         return this.candidatesService.getStats(req.user.userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get('experiences')
+    getExperiences(@Request() req) {
+        return this.candidatesService.getExperiences(req.user.userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post('experiences')
+    addExperience(@Body() body: any, @Request() req) {
+        return this.candidatesService.addExperience(req.user.userId, body);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Patch('experiences/:id')
+    updateExperience(@Param('id') id: string, @Body() body: any) {
+        return this.candidatesService.updateExperience(id, body);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Delete('experiences/:id')
+    removeExperience(@Param('id') id: string) {
+        return this.candidatesService.removeExperience(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get(':id/details')
+    getCandidateDetails(@Param('id') id: string) {
+        return this.candidatesService.findOneWithDetails(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post('applications/:id/status')
+    updateApplicationStatus(@Param('id') id: string, @Body('status') status: string) {
+        return this.candidatesService.updateApplicationStatus(id, status);
     }
 
     @UseGuards(AuthGuard('jwt'))

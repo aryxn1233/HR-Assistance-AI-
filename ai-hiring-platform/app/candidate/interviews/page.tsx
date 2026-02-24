@@ -18,15 +18,21 @@ import api from "@/lib/api"
 
 export default function CandidateInterviewsPage() {
     const [interviews, setInterviews] = useState<any[]>([])
+    const [applications, setApplications] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [startingId, setStartingId] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchInterviews = async () => {
             try {
-                const response = await api.get('/interviews')
-                setInterviews(response.data)
+                const [interRes, appsRes] = await Promise.all([
+                    api.get('/interviews'),
+                    api.get('/candidates/applications')
+                ])
+                setInterviews(interRes.data)
+                setApplications(appsRes.data)
             } catch (error) {
-                console.error("Failed to fetch interviews", error)
+                console.error("Failed to fetch interviews or applications", error)
             } finally {
                 setLoading(false)
             }
@@ -34,18 +40,46 @@ export default function CandidateInterviewsPage() {
         fetchInterviews()
     }, [])
 
-    const safeInterviews = Array.isArray(interviews) ? interviews : [];
-    if (!Array.isArray(interviews)) {
-        console.warn("Interviews data is not an array:", interviews);
+    const handleStartInterview = async (applicationId: string) => {
+        setStartingId(applicationId)
+        try {
+            const response = await api.post(`/interviews/start-with-app/${applicationId}`)
+            const data = response.data
+            // The response is { status, question } where question contains interviewId
+            const interviewId = data.question?.interviewId || data.id
+            if (!interviewId) {
+                alert("Interview started but could not get interview ID. Please refresh and check Interviews page.")
+                return
+            }
+            window.location.href = `/candidate/interviews/${interviewId}`
+        } catch (error: any) {
+            console.error("Failed to start interview", error)
+            const msg = error?.response?.data?.message || "Failed to start interview. Please try again."
+            alert(msg)
+        } finally {
+            setStartingId(null)
+        }
     }
-    const upcomingInterviews = safeInterviews.filter(i => i.status === 'Scheduled' || i.status === 'In Progress')
-    const pastInterviews = safeInterviews.filter(i => i.status === 'Completed')
+
+    const safeInterviews = Array.isArray(interviews) ? interviews : [];
+    const upcomingInterviews = safeInterviews.filter(i => i.status === 'created' || i.status === 'in_progress')
+    const pastInterviews = safeInterviews.filter(i => i.status === 'completed')
+
+    const rejectedStatuses = ['rejected', 'rejected_ai', 'rejected_post_interview']
+    // Show interview opportunity for any active application that doesn't have an interview session yet
+    const eligibleApplications = Array.isArray(applications)
+        ? applications.filter(app =>
+            !rejectedStatuses.includes(app.status) &&
+            !safeInterviews.find(i => i.applicationId === app.id)
+        )
+        : []
 
     if (loading) return (
         <div className="flex items-center justify-center p-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     )
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -58,6 +92,55 @@ export default function CandidateInterviewsPage() {
                 <p className="text-muted-foreground">Prepare and participate in your scheduled AI video interviews.</p>
             </div>
 
+            {/* New Invitations Section */}
+            {eligibleApplications.length > 0 && (
+                <section className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                        <h2 className="text-xl font-bold">Interview Opportunities</h2>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {eligibleApplications.map((app) => (
+                            <motion.div key={app.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                                <Card className="border-none shadow-lg rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-l-4 border-primary">
+                                    <CardHeader className="pb-2">
+                                        <div className="flex justify-between items-start">
+                                            <Badge className="bg-yellow-500 text-white rounded-full px-3 font-bold border-none shadow-sm">
+                                                ELIGIBLE
+                                            </Badge>
+                                            <Brain className="h-5 w-5 text-primary opacity-50" />
+                                        </div>
+                                        <CardTitle className="pt-2 text-xl">{app.job?.title || "Role"}</CardTitle>
+                                        <CardDescription className="font-bold text-primary">{app.job?.department || "Company"}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="py-4">
+                                        <p className="text-sm text-foreground/70 leading-relaxed">
+                                            Great news! Your profile matched the requirements. You are invited to take the AI interview for this position.
+                                        </p>
+                                    </CardContent>
+                                    <CardFooter className="pt-2 pb-6">
+                                        <Button
+                                            onClick={() => handleStartInterview(app.id)}
+                                            disabled={startingId === app.id}
+                                            className="w-full rounded-xl h-12 font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all gap-2"
+                                        >
+                                            {startingId === app.id ? (
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (
+                                                <>
+                                                    Start AI Interview
+                                                    <ArrowRight className="h-5 w-5" />
+                                                </>
+                                            )}
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            </motion.div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             <section className="space-y-4">
                 <h2 className="text-xl font-bold">Upcoming Sessions</h2>
                 {upcomingInterviews.length > 0 ? (
@@ -67,7 +150,7 @@ export default function CandidateInterviewsPage() {
                                 <Card className="border-none shadow-sm rounded-2xl overflow-hidden ring-1 ring-primary/20">
                                     <CardHeader className="bg-primary/5 pb-4">
                                         <div className="flex items-center justify-between">
-                                            <Badge className="bg-primary text-primary-foreground rounded-full px-3 animate-pulse">
+                                            <Badge className="bg-primary text-primary-foreground rounded-full px-3">
                                                 {interview.status}
                                             </Badge>
                                             <div className="flex items-center gap-1 text-xs font-bold text-primary uppercase tracking-wider">

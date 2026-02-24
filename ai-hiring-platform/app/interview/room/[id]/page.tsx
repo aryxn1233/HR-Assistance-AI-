@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, MicOff, Send, Loader2, Volume2, VolumeX } from "lucide-react";
 import api from "@/lib/api";
-import AvatarComponent from "@/components/interview/AvatarComponent";
+import DIdAvatar from "@/components/interview/DIdAvatar";
 import { WebcamPreview } from "@/components/interview/WebcamPreview";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { useWebSpeech } from "@/hooks/useWebSpeech";
@@ -101,7 +101,7 @@ export default function InterviewRoomPage() {
     const startInterview = () => {
         setHasStarted(true);
         if (currentQuestion) {
-            speak(currentQuestion.questionText);
+            window.dispatchEvent(new CustomEvent("did-speak", { detail: { text: currentQuestion.questionText } }));
         }
     };
 
@@ -130,9 +130,9 @@ export default function InterviewRoomPage() {
             if (data.question) {
                 setCurrentQuestion(data.question);
                 setMessages(prev => [...prev, { role: 'ai', content: data.question.questionText, id: data.question.id }]);
-                // Auto-speak new question
-                // Passing data.question.audioUrl if available from backend (user mentioned it returns audio)
-                setTimeout(() => speak(data.question.questionText, data.question.audioUrl), 500);
+
+                // Trigger D-ID Avatar to speak
+                window.dispatchEvent(new CustomEvent("did-speak", { detail: { text: data.question.questionText } }));
             }
 
         } catch (error) {
@@ -172,7 +172,7 @@ export default function InterviewRoomPage() {
 
             {/* Left: Avatar */}
             <div className="w-1/2 bg-black relative flex items-center justify-center border-r border-border">
-                <AvatarComponent />
+                <DIdAvatar />
 
                 {/* Status Overlay */}
                 <div className="absolute top-6 left-6 z-10">

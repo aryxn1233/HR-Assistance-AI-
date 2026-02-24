@@ -11,7 +11,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 import { GeminiModule } from './gemini/gemini.module';
-import { HeyGenModule } from './heygen/heygen.module';
+import { DIdModule } from './did/did.module';
 
 @Module({
   imports: [
@@ -38,7 +38,7 @@ import { HeyGenModule } from './heygen/heygen.module';
     InterviewsModule,
     AnalyticsModule,
     GeminiModule,
-    HeyGenModule,
+    DIdModule,
   ],
   controllers: [AppController],
   providers: [AppService],

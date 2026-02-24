@@ -3,10 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, Calendar, Video, Clock, Loader2, ArrowUpRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
+import { CheckCircle2, Calendar, Video, Clock, Loader2, ArrowUpRight, Zap } from "lucide-react"
 
 export function RecentActivity() {
     const [activities, setActivities] = useState<any[]>([])
@@ -16,15 +16,18 @@ export function RecentActivity() {
         const fetchActivity = async () => {
             try {
                 const response = await api.get('/candidates/applications')
-                const active = response.data.map((app: any) => ({
-                    id: app.id,
-                    title: `Applied for ${app.job.title}`,
-                    company: app.job.department || "Company",
-                    time: new Date(app.createdAt).toLocaleDateString(),
-                    icon: CheckCircle2,
-                    color: "text-green-500",
-                    bg: "bg-green-500/10",
-                })).slice(0, 5)
+                const active = response.data.map((app: any) => {
+                    const isEligible = app.status === 'interview_eligible';
+                    return {
+                        id: app.id,
+                        title: isEligible ? `Eligible for Interview: ${app.job?.title}` : `Applied for ${app.job?.title}`,
+                        company: app.job?.department || "",
+                        time: new Date(app.createdAt).toLocaleDateString(),
+                        icon: isEligible ? Zap : CheckCircle2,
+                        color: isEligible ? "text-yellow-500" : "text-green-500",
+                        bg: isEligible ? "bg-yellow-500/10" : "bg-green-500/10",
+                    };
+                }).slice(0, 5)
                 setActivities(active)
             } catch (error) {
                 console.error("Failed to fetch activity", error)

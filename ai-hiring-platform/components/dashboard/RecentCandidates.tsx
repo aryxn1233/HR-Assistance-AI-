@@ -58,7 +58,7 @@ export function RecentCandidates() {
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold tracking-tight">Recent Interviews</h2>
                 <Button variant="outline" size="sm" asChild>
-                    <Link href="/candidates">View All</Link>
+                    <Link href="/recruiter/interviews">View All</Link>
                 </Button>
             </div>
             <div className="border-border rounded-md border">
@@ -99,9 +99,9 @@ export function RecentCandidates() {
                                     <TableCell>
                                         <Badge
                                             variant={
-                                                interview.status === "Completed" // Enum match? (backend sends string)
+                                                interview.status === "completed"
                                                     ? "default"
-                                                    : interview.status === "Rejected" // Backend status enum
+                                                    : interview.status === "rejected"
                                                         ? "destructive"
                                                         : "secondary"
                                             }
@@ -111,7 +111,7 @@ export function RecentCandidates() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" asChild>
-                                            <Link href={`/interviews/${interview.id}`}>
+                                            <Link href="/recruiter/interviews">
                                                 <ArrowUpRight className="h-4 w-4" />
                                             </Link>
                                         </Button>

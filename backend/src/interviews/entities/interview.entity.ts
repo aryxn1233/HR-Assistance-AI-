@@ -1,14 +1,15 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { Candidate } from '../../candidates/candidate.entity';
 import { Job } from '../../jobs/job.entity';
+import { Application } from '../../candidates/application.entity';
 import { InterviewQuestion } from './interview-question.entity';
 import { InterviewReport } from './interview-report.entity';
 
 export enum InterviewStatus {
-    SCHEDULED = 'Scheduled',
-    IN_PROGRESS = 'In Progress',
-    COMPLETED = 'Completed',
-    CANCELLED = 'Cancelled',
+    CREATED = 'created',
+    IN_PROGRESS = 'in_progress',
+    COMPLETED = 'completed',
+    CANCELLED = 'cancelled',
 }
 
 @Entity('interviews')
@@ -16,12 +17,15 @@ export class Interview {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column('uuid')
-    candidateId: string;
+    @Column('uuid', { nullable: true })
+    applicationId: string;
 
-    @ManyToOne(() => Candidate)
-    @JoinColumn({ name: 'candidateId' })
-    candidate: Candidate;
+    @ManyToOne(() => Application)
+    @JoinColumn({ name: 'applicationId' })
+    application: Application;
+
+    @Column({ default: false })
+    completed: boolean;
 
     @Column('uuid')
     jobId: string;
@@ -30,12 +34,18 @@ export class Interview {
     @JoinColumn({ name: 'jobId' })
     job: Job;
 
+    @Column('uuid')
+    candidateId: string;
+
+    @ManyToOne(() => Candidate)
+    @JoinColumn({ name: 'candidateId' })
+    candidate: Candidate;
+
     @Column({
-        type: 'enum',
-        enum: InterviewStatus,
-        default: InterviewStatus.SCHEDULED,
+        type: 'varchar',
+        default: InterviewStatus.CREATED,
     })
-    status: InterviewStatus;
+    status: string;
 
     @Column({ type: 'int', default: 0 })
     score: number;
@@ -52,11 +62,17 @@ export class Interview {
     @Column('jsonb', { nullable: true })
     feedback: any;
 
-    @Column('text', { nullable: true })
-    transcript: string;
+    @Column('jsonb', { nullable: true, default: [] })
+    transcript: { speaker: 'AI' | 'Candidate'; message: string; timestamp: Date }[];
 
     @Column('jsonb', { nullable: true, default: [] })
     history: { role: string; content: string }[];
+
+    @Column({ type: 'varchar', nullable: true })
+    fitDecision: string;
+
+    @Column({ type: 'int', nullable: true })
+    joinProbability: number;
 
     @CreateDateColumn()
     createdAt: Date;
@@ -64,3 +80,4 @@ export class Interview {
     @UpdateDateColumn()
     updatedAt: Date;
 }
+

@@ -19,7 +19,7 @@ export class AnalyticsService {
     async getDashboardMetrics() {
         const totalCandidates = await this.candidatesRepository.count();
         const activeJobs = await this.jobsRepository.count({ where: { status: 'Active' } });
-        const completedInterviews = await this.interviewsRepository.count({ where: { status: 'Completed' as any } }); // Status enum issue?
+        const completedInterviews = await this.interviewsRepository.count({ where: { status: 'completed' as any } }); // Standardized to lowercase
 
         // Average Score
         const interviewsWithScore = await this.interviewsRepository

@@ -24,8 +24,15 @@ export class InterviewsController {
     }
 
     @UseGuards(AuthGuard('jwt'))
+    @Post('start-with-app/:applicationId')
+    startByApp(@Param('applicationId') applicationId: string, @Request() req) {
+        return this.interviewsService.startInterviewByApplication(applicationId, req.user.userId);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
     @Post(':id/start')
-    startSession(@Param('id') id: string) {
+    startSession(@Param('id') id: string, @Request() req) {
+        require('fs').writeFileSync('request-log.txt', `start called id=${id} user=${JSON.stringify(req.user)}\n`);
         return this.interviewsService.startSession(id);
     }
 
@@ -33,5 +40,11 @@ export class InterviewsController {
     @Post(':id/answer')
     submitAnswer(@Param('id') id: string, @Body('answer') answer: string) {
         return this.interviewsService.submitAnswer(id, answer);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Patch('application/:applicationId/submit-score')
+    submitScore(@Param('applicationId') applicationId: string, @Body('interviewScore') interviewScore: number) {
+        return this.interviewsService.submitInterviewScore(applicationId, interviewScore);
     }
 }

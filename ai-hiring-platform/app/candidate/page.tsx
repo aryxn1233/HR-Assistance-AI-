@@ -6,6 +6,8 @@ import { ApplicationTimeline } from "@/components/candidate/ApplicationTimeline"
 import { RecentActivity } from "@/components/candidate/RecentActivity"
 import { motion } from "framer-motion"
 
+import { ApplicationsList } from "@/components/candidate/ApplicationsList"
+
 export default function CandidateDashboardPage() {
     return (
         <motion.div
@@ -18,8 +20,11 @@ export default function CandidateDashboardPage() {
             <StatsCards />
 
             <div className="grid gap-6 lg:grid-cols-2">
-                <ApplicationTimeline />
-                <RecentActivity />
+                <ApplicationsList />
+                <div className="space-y-6">
+                    <ApplicationTimeline />
+                    <RecentActivity />
+                </div>
             </div>
 
             {/* Additional content could go here, like Recommended Jobs or Tips */}

@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Interview, InterviewStatus } from './entities/interview.entity';
 import { InterviewQuestion, QuestionDifficulty } from './entities/interview-question.entity';
 import { InterviewAnswer } from './entities/interview-answer.entity';
-import { InterviewReport } from './entities/interview-report.entity';
+import { InterviewReport, HiringRecommendation } from './entities/interview-report.entity';
 import { GeminiService } from '../gemini/gemini.service';
+import { Application, ApplicationStatus } from '../candidates/application.entity';
+import { Candidate } from '../candidates/candidate.entity';
 
 @Injectable()
 export class InterviewsService {
@@ -18,8 +20,84 @@ export class InterviewsService {
         private answersRepository: Repository<InterviewAnswer>,
         @InjectRepository(InterviewReport)
         private reportsRepository: Repository<InterviewReport>,
+        @InjectRepository(Application)
+        private applicationsRepository: Repository<Application>,
+        @InjectRepository(Candidate)
+        private candidatesRepository: Repository<Candidate>,
         private geminiService: GeminiService,
     ) { }
+
+    async startInterviewByApplication(applicationId: string, userId: string): Promise<any> {
+        const application = await this.applicationsRepository.findOne({
+            where: { id: applicationId },
+            relations: ['candidate', 'job']
+        });
+
+        if (!application) throw new NotFoundException('Application not found');
+        if (application.candidate.userId !== userId) {
+            throw new ForbiddenException('You are not authorized to start this interview');
+        }
+
+        // Block explicitly rejected applications
+        const blockedStatuses = [
+            ApplicationStatus.REJECTED,
+            ApplicationStatus.REJECTED_AI,
+            ApplicationStatus.REJECTED_POST_INTERVIEW
+        ];
+        if (blockedStatuses.includes(application.status as ApplicationStatus)) {
+            throw new ForbiddenException('This application has been rejected and cannot proceed to interview.');
+        }
+
+        // Check if interview already exists
+        let interview = await this.interviewsRepository.findOne({
+            where: { applicationId }
+        });
+
+        if (!interview) {
+            // Mark application as interview_eligible if not already
+            if (application.status !== ApplicationStatus.INTERVIEW_ELIGIBLE) {
+                await this.applicationsRepository.update(applicationId, {
+                    status: ApplicationStatus.INTERVIEW_ELIGIBLE
+                });
+            }
+
+            interview = this.interviewsRepository.create({
+                applicationId,
+                jobId: application.jobId,
+                candidateId: application.candidateId,
+                status: InterviewStatus.CREATED,
+                score: 0,
+                currentQuestionIndex: 0,
+                history: []
+            });
+            await this.interviewsRepository.save(interview);
+        }
+
+        return this.startSession(interview.id);
+    }
+
+    async submitInterviewScore(applicationId: string, interviewScore: number): Promise<Application> {
+        const application = await this.applicationsRepository.findOne({ where: { id: applicationId } });
+        if (!application) throw new NotFoundException('Application not found');
+
+        const resumeScore = application.resumeScore || 0;
+        const finalHiringScore = Math.round((resumeScore * 0.6) + (interviewScore * 0.4));
+
+        let status = ApplicationStatus.REJECTED_POST_INTERVIEW;
+        if (finalHiringScore >= 60) {
+            status = ApplicationStatus.SELECTED;
+        } else if (finalHiringScore >= 50) {
+            status = ApplicationStatus.HOLD;
+        }
+
+        await this.applicationsRepository.update(applicationId, {
+            interviewScore,
+            finalHiringScore,
+            status,
+        });
+
+        return this.applicationsRepository.findOne({ where: { id: applicationId } }) as Promise<Application>;
+    }
 
     async create(createInterviewDto: any): Promise<Interview> {
         const interview = this.interviewsRepository.create(createInterviewDto);
@@ -27,15 +105,18 @@ export class InterviewsService {
     }
 
     async findAll(userId?: string): Promise<any[]> {
-        const where: any = {};
+        const query = this.interviewsRepository.createQueryBuilder('interview')
+            .leftJoinAndSelect('interview.candidate', 'candidate')
+            .leftJoinAndSelect('candidate.user', 'user')
+            .leftJoinAndSelect('interview.job', 'job')
+            .leftJoinAndSelect('interview.report', 'report')
+            .orderBy('interview.createdAt', 'DESC');
+
         if (userId) {
-            where.candidate = { userId: userId };
+            query.where('user.id = :userId', { userId });
         }
-        return this.interviewsRepository.find({
-            where,
-            relations: ['candidate', 'candidate.user', 'job', 'report'],
-            order: { createdAt: 'DESC' }
-        });
+
+        return query.getMany();
     }
 
     async findOne(id: string): Promise<Interview> {
@@ -48,76 +129,63 @@ export class InterviewsService {
     }
 
     async startSession(id: string): Promise<any> {
-        const interview = await this.findOne(id);
+        try {
+            const interview = await this.findOne(id);
+            console.log(`startSession: interview ${id} status=${interview.status} questions=${interview.questions?.length}`);
 
-        if (interview.status === InterviewStatus.COMPLETED) {
-            return { status: 'completed', report: interview.report };
-        }
-
-        if (interview.questions && interview.questions.length > 0) {
-            // Resume: Return last question
-            const lastQuestion = interview.questions.sort((a, b) => a.orderNumber - b.orderNumber)[interview.questions.length - 1];
-            // Check if already answered
-            const answer = await this.answersRepository.findOne({ where: { questionId: lastQuestion.id } });
-            if (!answer) {
-                return { status: 'in_progress', question: lastQuestion };
+            if (interview.status === InterviewStatus.COMPLETED) {
+                return { status: 'completed', report: interview.report };
             }
-            // If answered, logic should have generated next, but if stuck, generate next
-            return this.generateNextQuestion(interview);
-        }
 
-        // Generate First Question
-        return this.generateNextQuestion(interview);
+            // Return current state or generate opening if newly created
+            if (interview.status === InterviewStatus.CREATED) {
+                return await this.generateNextQuestion(interview);
+            }
+
+            const questionCount = interview.questions?.length || 0;
+            if (questionCount > 0) {
+                const lastQuestion = interview.questions.sort((a, b) => a.orderNumber - b.orderNumber)[questionCount - 1];
+                const answer = await this.answersRepository.findOne({ where: { questionId: lastQuestion.id } });
+                if (!answer) {
+                    return { status: 'in_progress', question: lastQuestion };
+                }
+                return await this.generateNextQuestion(interview);
+            }
+
+            return await this.generateNextQuestion(interview);
+        } catch (err: any) {
+            const msg = `startSession error for ${id}: ${err?.stack || err?.message || err}\n`;
+            console.error(msg);
+            require('fs').writeFileSync('interview-error.log', msg);
+            throw err;
+        }
     }
 
     private async generateNextQuestion(interview: Interview): Promise<any> {
-        // Update status
-        if (interview.status === InterviewStatus.SCHEDULED) {
+        // Update status if it's newly created
+        if (interview.status === InterviewStatus.CREATED) {
             interview.status = InterviewStatus.IN_PROGRESS;
-            await this.interviewsRepository.save(interview);
+            // No save here yet, will save with question
         }
 
         const questionCount = await this.questionsRepository.count({ where: { interviewId: interview.id } });
 
-        // END CONDITION: Max 5 questions for now (User said 8-10, keeping 5 for testing/start, can increase)
-        if (questionCount >= 5) {
-            return this.finishInterview(interview);
-        }
-
-        // Context for AI
-        const context: {
-            jobDescription: string;
-            resume: any;
-            stage: string;
-            difficulty: string;
-            previousQuestion: string | null;
-            previousAnswer: string | null;
-        } = {
+        // Context for AI - simplified using history
+        const context = {
             jobDescription: interview.job?.description,
-            resume: (interview.candidate?.resumeText || interview.candidate?.skills || null) as string | null,
-            stage: 'Technical',
+            resume: (interview.candidate?.resumeText || interview.candidate?.skills || null),
+            history: interview.history || [],
             difficulty: 'Medium',
-            previousQuestion: null,
-            previousAnswer: null
         };
 
-        // If history exists, add previous context for continuity
-        if (questionCount > 0) {
-            const lastQuestion = await this.questionsRepository.findOne({
-                where: { interviewId: interview.id, orderNumber: questionCount },
-            });
-            if (lastQuestion) {
-                const lastAnswer = await this.answersRepository.findOne({ where: { questionId: lastQuestion.id } });
-                context.previousQuestion = lastQuestion.questionText;
-                context.previousAnswer = lastAnswer?.transcript || null;
-
-                // Adaptive Difficulty
-                if (lastAnswer && lastAnswer.technicalScore > 7) context.difficulty = 'Hard';
-                else if (lastAnswer && lastAnswer.technicalScore < 4) context.difficulty = 'Easy';
-            }
-        }
-
         const questionData = await this.geminiService.generateQuestion(context);
+
+        if ((questionData as any).isComplete) {
+            const closingMsg = questionData.question === 'INTERVIEW_COMPLETE'
+                ? 'The interview is now complete. Thank you for your time!'
+                : questionData.question;
+            return this.finishInterview(interview, closingMsg);
+        }
 
         // Save Question
         const question = this.questionsRepository.create({
@@ -129,10 +197,15 @@ export class InterviewsService {
         });
         await this.questionsRepository.save(question);
 
-        // Update Interview Index
+        // Update only the specific fields on Interview — do NOT use save(interview) as it
+        // will try to cascade-update loaded relations (candidate, job, etc.) and fail.
+        const newTranscript = [...(interview.transcript || []), { speaker: 'AI' as const, message: questionData.question, timestamp: new Date() }];
+        const newHistory = [...(interview.history || []), { role: 'ai', content: questionData.question }];
         await this.interviewsRepository.update(interview.id, {
+            transcript: newTranscript,
+            history: newHistory,
             currentQuestionIndex: question.orderNumber,
-            status: interview.status
+            status: InterviewStatus.IN_PROGRESS,
         });
 
         return { status: 'in_progress', question };
@@ -144,7 +217,7 @@ export class InterviewsService {
             return { status: 'completed', report: interview.report };
         }
 
-        // Find current question (latest)
+        // Find current question
         const questions = await this.questionsRepository.find({
             where: { interviewId: id },
             order: { orderNumber: 'DESC' },
@@ -152,22 +225,10 @@ export class InterviewsService {
         });
 
         if (questions.length === 0) {
-            throw new BadRequestException('No active question found. Start session first.');
+            throw new BadRequestException('No active question found.');
         }
 
         const currentQuestion = questions[0];
-
-        // Check if already answered
-        const existingAnswer = await this.answersRepository.findOne({ where: { questionId: currentQuestion.id } });
-        if (existingAnswer) {
-            // Already answered, maybe just return next question or status? 
-            // For now, allow re-answer? No, strict turn based.
-            // If answered, we should satisfy the "next" call.
-            // But let's assume this is the submission.
-            // throw new BadRequestException('Question already answered.');
-            // Actually, creating a new answer or updating is safer logic handling.
-            // Let's creating if not exists.
-        }
 
         // Evaluate Answer
         const evaluation = await this.geminiService.evaluateAnswer(currentQuestion.questionText, answerText);
@@ -184,12 +245,34 @@ export class InterviewsService {
         });
         await this.answersRepository.save(answer);
 
+        // Update Interview Transcript — use update() not save() to avoid TypeORM cascade issues
+        const updatedTranscript = [...(interview.transcript || []), { speaker: 'Candidate' as const, message: answerText, timestamp: new Date() }];
+        const updatedHistory = [...(interview.history || []), { role: 'user', content: answerText }];
+        await this.interviewsRepository.update(id, {
+            transcript: updatedTranscript,
+            history: updatedHistory,
+        });
+        // Sync the object too so generateNextQuestion uses the updated values
+        interview.transcript = updatedTranscript;
+        interview.history = updatedHistory;
+
         // Trigger Next Step
-        return this.generateNextQuestion(interview);
+        return await this.generateNextQuestion(interview);
     }
 
-    private async finishInterview(interview: Interview): Promise<any> {
+    private async finishInterview(interview: Interview, closingMessage?: string): Promise<any> {
         interview.status = InterviewStatus.COMPLETED;
+
+        if (closingMessage) {
+            const finalTranscript = [...(interview.transcript || []), { speaker: 'AI' as const, message: closingMessage, timestamp: new Date() }];
+            const finalHistory = [...(interview.history || []), { role: 'ai', content: closingMessage }];
+            await this.interviewsRepository.update(interview.id, {
+                transcript: finalTranscript,
+                history: finalHistory
+            });
+            interview.transcript = finalTranscript;
+            interview.history = finalHistory;
+        }
 
         // Gather all data for report
         const questions = await this.questionsRepository.find({ where: { interviewId: interview.id } });
@@ -201,31 +284,33 @@ export class InterviewsService {
 
         const reportData = await this.geminiService.generateReport({
             job: interview.job?.title,
-            messages: answers.map(pair => ({
-                question: pair.question.questionText,
-                answer: pair.answer.transcript,
-                scores: {
-                    technical: pair.answer.technicalScore,
-                    communication: pair.answer.communicationScore
-                }
-            }))
+            messages: interview.transcript
         });
 
         // Save Report
         const report = this.reportsRepository.create({
             interviewId: interview.id,
-            overallScore: reportData.overallScore,
+            overallScore: reportData.overall_rating * 10,
             strengths: reportData.strengths,
             weaknesses: reportData.weaknesses,
-            recommendation: reportData.recommendation as any,
-            detailedAnalysis: reportData.detailedAnalysis
+            recommendation: reportData.fit_for_role === 'YES' ? HiringRecommendation.HIRE : HiringRecommendation.NO_HIRE,
+            detailedAnalysis: reportData
         });
         await this.reportsRepository.save(report);
 
-        // Update Interview Score
-        interview.score = reportData.overallScore;
-        await this.interviewsRepository.save(interview);
+        // Update Interview fields — use update() not save() to avoid TypeORM cascade issues
+        const finalScore = reportData.overall_rating * 10;
+        await this.interviewsRepository.update(interview.id, {
+            status: InterviewStatus.COMPLETED,
+            score: finalScore,
+            fitDecision: reportData.fit_for_role,
+            joinProbability: reportData.joining_probability_percent,
+        });
+
+        // Update Application Status
+        await this.submitInterviewScore(interview.applicationId, finalScore);
 
         return { status: 'completed', report };
     }
+
 }

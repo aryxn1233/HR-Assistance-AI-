@@ -3,12 +3,15 @@ import { Candidate } from '../candidates/candidate.entity';
 import { Job } from '../jobs/job.entity';
 
 export enum ApplicationStatus {
-    APPLIED = 'Applied',
-    SCREENING = 'Screening',
-    INTERVIEWING = 'Interviewing',
-    SHORTLISTED = 'Shortlisted',
-    REJECTED = 'Rejected',
-    OFFER_EXTENDED = 'Offer Extended',
+    APPLIED = 'applied',
+    SHORTLISTED = 'shortlisted',
+    REJECTED = 'rejected',
+    INTERVIEWED = 'interviewed',
+    INTERVIEW_ELIGIBLE = 'interview_eligible',
+    REJECTED_AI = 'rejected_ai',
+    SELECTED = 'selected',
+    HOLD = 'hold',
+    REJECTED_POST_INTERVIEW = 'rejected_post_interview',
 }
 
 @Entity('applications')
@@ -26,19 +29,42 @@ export class Application {
     @Column('uuid')
     jobId: string;
 
-    @ManyToOne(() => Job)
+    @ManyToOne(() => Job, (job) => job.applications)
     @JoinColumn({ name: 'jobId' })
     job: Job;
 
-    @Column({
-        type: 'enum',
-        enum: ApplicationStatus,
-        default: ApplicationStatus.APPLIED,
-    })
-    status: ApplicationStatus;
+    @Column('uuid', { nullable: true })
+    resumeId: string;
 
-    @Column({ type: 'int', default: 0 })
-    aiScore: number;
+    @Column('int', { nullable: true })
+    resumeScore: number;
+
+    @Column('json', { nullable: true })
+    resumeBreakdown: any;
+
+    @Column('varchar', { nullable: true })
+    category: string;
+
+    @Column('int', { nullable: true })
+    rank: number;
+
+    @Column('int', { nullable: true })
+    interviewScore: number;
+
+    @Column('int', { nullable: true })
+    finalHiringScore: number;
+
+    @Column({ default: false })
+    shortlisted: boolean;
+
+    @Column({ default: false })
+    interviewUnlocked: boolean;
+
+    @Column({
+        type: 'varchar',
+        default: 'applied',
+    })
+    status: string;
 
     @CreateDateColumn()
     createdAt: Date;

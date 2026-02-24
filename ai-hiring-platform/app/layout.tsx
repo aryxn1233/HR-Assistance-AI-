@@ -6,6 +6,8 @@ import { AuthProvider } from "@/context/auth-context";
 import { AuthGuard } from "@/components/AuthGuard";
 
 
+import { Toaster } from "sonner";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -33,6 +35,7 @@ export default function RootLayout({
             <AuthGuard>
               {children}
             </AuthGuard>
+            <Toaster richColors closeButton position="top-right" />
           </AuthProvider>
         </ThemeProvider>
       </body>

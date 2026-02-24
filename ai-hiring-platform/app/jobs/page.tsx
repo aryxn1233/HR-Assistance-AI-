@@ -41,6 +41,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import api from "@/lib/api"
 import Link from "next/link"
+import { JobDetailsDialog } from "@/components/jobs/JobDetailsDialog"
 
 interface Job {
     id: string;
@@ -50,7 +51,7 @@ interface Job {
     type: string;
     status: string;
     createdAt: string;
-    // candidates count not in basic entity yet
+    applicantCount?: number;
 }
 
 import { CreateJobDialog } from "@/components/jobs/CreateJobDialog"
@@ -77,6 +78,18 @@ export default function JobsPage() {
 
     const handleJobCreated = () => {
         fetchJobs();
+    };
+
+    const handleDeleteJob = async (jobId: string) => {
+        if (!confirm("Are you sure you want to delete this job? This will also remove all candidate applications for this role.")) return;
+
+        try {
+            await api.delete(`/jobs/${jobId}`);
+            setJobs(prev => prev.filter(j => j.id !== jobId));
+        } catch (error) {
+            console.error("Failed to delete job", error);
+            alert("Failed to delete job. Please try again.");
+        }
     };
 
     const filteredJobs =
@@ -139,46 +152,60 @@ export default function JobsPage() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredJobs.map((job) => (
-                    <Card key={job.id} className="transition-all hover:shadow-md">
-                        <CardHeader>
+                    <Card key={job.id} className="transition-all hover:shadow-md border-none shadow-sm rounded-3xl overflow-hidden flex flex-col">
+                        <CardHeader className="pb-4">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1">
-                                    <CardTitle className="text-xl">{job.title}</CardTitle>
-                                    <CardDescription className="flex items-center gap-1">
-                                        <Briefcase className="h-3 w-3" /> {job.department || 'Engineering'}
+                                    <JobDetailsDialog
+                                        job={job as any}
+                                        userRole="recruiter"
+                                        trigger={
+                                            <CardTitle className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">
+                                                {job.title}
+                                            </CardTitle>
+                                        }
+                                    />
+                                    <CardDescription className="flex items-center gap-1 font-semibold text-primary">
+                                        <Briefcase className="h-3 w-3" /> {job.department || ''}
                                     </CardDescription>
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
                                             <span className="sr-only">Open menu</span>
                                             <MoreHorizontal className="h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-xl">
                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                        <DropdownMenuItem>Edit Job</DropdownMenuItem>
-                                        <DropdownMenuItem>View Candidates</DropdownMenuItem>
+                                        <DropdownMenuItem className="rounded-xl">Edit Job</DropdownMenuItem>
+                                        <DropdownMenuItem className="rounded-xl">View Candidates</DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive">
+                                        <DropdownMenuItem
+                                            className="text-destructive rounded-xl"
+                                            onClick={() => handleDeleteJob(job.id)}
+                                        >
                                             Delete Job
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-1">
                             <div className="flex flex-col gap-2">
                                 <div className="flex items-center justify-between text-sm">
-                                    <div className="text-muted-foreground flex items-center gap-1">
+                                    <div className="text-muted-foreground flex items-center gap-1 font-medium">
                                         <MapPin className="h-3 w-3" /> {job.location}
                                     </div>
-                                    <Badge variant="outline">{job.type}</Badge>
+                                    <Badge variant="outline" className="rounded-full bg-muted/30 border-none px-2 py-0.5 font-bold text-[10px] uppercase">
+                                        {job.type}
+                                    </Badge>
                                 </div>
                                 <div className="flex items-center justify-between mt-2">
                                     <Badge
+                                        className="rounded-full px-2 py-0.5 font-bold text-[10px] uppercase"
                                         variant={
-                                            job.status === "PUBLISHED" // Assuming backend uses PUBLISHED
+                                            job.status === "PUBLISHED" || job.status === "Active"
                                                 ? "default"
                                                 : job.status === "DRAFT"
                                                     ? "secondary"
@@ -187,19 +214,25 @@ export default function JobsPage() {
                                     >
                                         {job.status}
                                     </Badge>
-                                    <div className="text-muted-foreground text-xs flex items-center gap-1">
+                                    <div className="text-muted-foreground text-[10px] font-bold uppercase flex items-center gap-1">
                                         <Calendar className="h-3 w-3" /> {formatDate(job.createdAt)}
                                     </div>
                                 </div>
                             </div>
                         </CardContent>
-                        <CardFooter className="bg-muted/50 flex items-center justify-between px-6 py-3">
-                            <div className="text-muted-foreground text-sm flex items-center gap-1">
-                                <Users className="h-4 w-4" /> 0 Candidates
+                        <CardFooter className="bg-muted/10 flex items-center justify-between px-6 py-3 border-t border-muted/50">
+                            <div className="text-muted-foreground text-xs font-bold uppercase flex items-center gap-1.5 text-primary">
+                                <Users className="h-4 w-4" /> {job.applicantCount || 0} Candidates
                             </div>
-                            <Button variant="ghost" size="sm">
-                                View Details
-                            </Button>
+                            <JobDetailsDialog
+                                job={job as any}
+                                userRole="recruiter"
+                                trigger={
+                                    <Button variant="ghost" size="sm" className="font-bold text-xs rounded-xl hover:bg-primary/5">
+                                        View Details
+                                    </Button>
+                                }
+                            />
                         </CardFooter>
                     </Card>
                 ))}

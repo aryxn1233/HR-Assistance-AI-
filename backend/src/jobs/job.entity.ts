@@ -1,9 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Application } from '../candidates/application.entity';
 
 @Entity('jobs')
 export class Job {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @OneToMany(() => Application, (application) => application.job)
+    applications: Application[];
 
     @Column()
     title: string;
@@ -21,7 +25,7 @@ export class Job {
     type: string;
 
     @Column('simple-array', { nullable: true })
-    skills: string[];
+    requiredSkills: string[];
 
     @Column('float', { default: 0 })
     minExperience: number;
@@ -29,8 +33,8 @@ export class Job {
     @Column({ default: 'Active' })
     status: string;
 
-    @Column('uuid') // Ideally relationship to User entity
-    recruiterId: string;
+    @Column('uuid', { nullable: true })
+    createdBy: string;
 
     @CreateDateColumn()
     createdAt: Date;

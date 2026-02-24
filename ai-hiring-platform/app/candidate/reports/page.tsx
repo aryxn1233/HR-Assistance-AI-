@@ -38,7 +38,7 @@ export default function CandidateReportsPage() {
             try {
                 // Get the most recent completed interview
                 const response = await api.get('/interviews')
-                const completed = response.data.filter((i: any) => i.status === 'Completed')
+                const completed = response.data.filter((i: any) => i.status === 'completed')
                 if (completed.length > 0) {
                     setReport(completed[0])
                 }
@@ -66,12 +66,14 @@ export default function CandidateReportsPage() {
     )
 
     // Map backend feedback to radarData structure
+    const analysis = report.report?.detailedAnalysis || report.feedback;
+
     const radarData = [
-        { subject: 'Communication', A: report.feedback?.scores?.communication || 80, fullMark: 100 },
-        { subject: 'Technical skills', A: report.feedback?.scores?.technical || 70, fullMark: 100 },
-        { subject: 'Confidence', A: report.feedback?.scores?.confidence || 75, fullMark: 100 },
-        { subject: 'Problem Solving', A: report.feedback?.scores?.problemSolving || 65, fullMark: 100 },
-        { subject: 'Culture Fit', A: report.feedback?.scores?.culture || 85, fullMark: 100 },
+        { subject: 'Communication', A: (analysis?.communication_score * 10) || (analysis?.scores?.communication) || 80, fullMark: 100 },
+        { subject: 'Technical skills', A: (analysis?.technical_score * 10) || (analysis?.scores?.technical) || 70, fullMark: 100 },
+        { subject: 'Problem Solving', A: (analysis?.problem_solving_score * 10) || (analysis?.scores?.problemSolving) || 65, fullMark: 100 },
+        { subject: 'Behavioral', A: (analysis?.behavioral_score * 10) || (analysis?.scores?.behavioral) || 75, fullMark: 100 },
+        { subject: 'Culture Fit', A: (analysis?.culture_fit_score * 10) || (analysis?.scores?.culture) || 85, fullMark: 100 },
     ]
     return (
         <motion.div
@@ -139,7 +141,7 @@ export default function CandidateReportsPage() {
                             </h2>
                         </div>
                         <p className="text-primary-foreground/90 leading-relaxed text-lg italic">
-                            "{report.feedback?.summary || "Your AI analysis is being processed. Check back soon for deep insights into your performance."}"
+                            "{analysis?.detailed_feedback || analysis?.summary || "Your AI analysis is being processed. Check back soon for deep insights into your performance."}"
                         </p>
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                             <div>
@@ -147,8 +149,8 @@ export default function CandidateReportsPage() {
                                 <p className="text-2xl font-bold font-mono">{report.score}/100</p>
                             </div>
                             <div>
-                                <p className="text-[10px] uppercase tracking-widest font-bold text-white/60 mb-1">Assessment Date</p>
-                                <p className="text-lg font-bold font-mono">{new Date(report.createdAt).toLocaleDateString()}</p>
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-white/60 mb-1">Fit for Role</p>
+                                <p className="text-2xl font-bold font-mono">{report.fitDecision || "PENDING"}</p>
                             </div>
                         </div>
                     </div>
@@ -162,7 +164,7 @@ export default function CandidateReportsPage() {
                         Key Strengths
                     </h3>
                     <ul className="space-y-4">
-                        {(report.feedback?.strengths || [
+                        {(analysis?.strengths || [
                             "Articulate communication of design rationale.",
                             "Strong grasp of technical constraints and feasibility.",
                         ]).map((strength: string, i: number) => (
@@ -177,10 +179,10 @@ export default function CandidateReportsPage() {
                 <Card className="border-none shadow-sm rounded-3xl p-8 space-y-6">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                         <Lightbulb className="h-5 w-5 text-amber-500" />
-                        Areas for Growth
+                        Areas for Improvement
                     </h3>
                     <ul className="space-y-4">
-                        {(report.feedback?.weaknesses || [
+                        {(analysis?.weaknesses || [
                             "Further deep dive into data-driven design metrics.",
                             "Exploring more divergent ideation during whiteboarding.",
                         ]).map((growth: string, i: number) => (
@@ -194,4 +196,5 @@ export default function CandidateReportsPage() {
             </div>
         </motion.div>
     )
+
 }

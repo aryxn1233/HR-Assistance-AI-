@@ -1,0 +1,14 @@
+{
+    "name": "ai-interview-platform-root",
+    "version": "1.0.0",
+    "description": "Unified entry point for AI Hiring Platform",
+    "scripts": {
+        "start:db": "& \"C:\\Program Files\\PostgreSQL\\18\\bin\\pg_ctl.exe\" -D \"C:\\Program Files\\PostgreSQL\\18\\data\" start",
+        "start:backend": "cd backend && npm run start:dev",
+        "start:frontend": "cd ai-hiring-platform && npm run dev",
+        "start": "npx concurrently --kill-others \"npm run start:db\" \"npm run start:backend\" \"npm run start:frontend\""
+    },
+    "dependencies": {
+        "concurrently": "^9.1.2"
+    }
+}

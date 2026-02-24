@@ -10,9 +10,12 @@ import { InterviewReport } from './entities/interview-report.entity';
 import { AIModule } from '../ai/ai.module';
 import { GeminiModule } from '../gemini/gemini.module';
 
+import { Application } from '../candidates/application.entity';
+import { Candidate } from '../candidates/candidate.entity';
+
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Interview, InterviewQuestion, InterviewAnswer, InterviewReport]),
+        TypeOrmModule.forFeature([Interview, InterviewQuestion, InterviewAnswer, InterviewReport, Application, Candidate]),
         AIModule,
         GeminiModule
     ],

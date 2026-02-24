@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import api from "@/lib/api"
+import { JobDetailsDialog } from "@/components/jobs/JobDetailsDialog"
 
 interface Job {
     id: string
@@ -46,14 +47,8 @@ export default function FindJobsPage() {
                     api.get('/candidates/applications')
                 ])
                 const safeJobs = Array.isArray(jobsRes.data) ? jobsRes.data : [];
-                if (!Array.isArray(jobsRes.data)) {
-                    console.warn("Jobs data is not an array:", jobsRes.data);
-                }
                 setJobs(safeJobs)
                 const safeApps = Array.isArray(appsRes.data) ? appsRes.data : [];
-                if (!Array.isArray(appsRes.data)) {
-                    console.warn("Applications data is not an array:", appsRes.data);
-                }
                 setAppliedJobs(safeApps.map((app: any) => app.jobId))
             } catch (error) {
                 console.error("Failed to fetch jobs", error)
@@ -138,9 +133,20 @@ export default function FindJobsPage() {
                                         {job.type || "Full Time"}
                                     </Badge>
                                 </div>
-                                <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{job.title}</CardTitle>
+                                <JobDetailsDialog
+                                    job={job}
+                                    isApplied={appliedJobs.includes(job.id)}
+                                    onApply={handleApply}
+                                    isApplying={applying === job.id}
+                                    trigger={
+                                        <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer hover:underline decoration-primary/30 underline-offset-4">
+                                            {job.title}
+                                        </CardTitle>
+                                    }
+                                />
                                 <CardDescription className="font-semibold text-primary">{job.department || "Engineering"}</CardDescription>
                             </CardHeader>
+
                             <CardContent className="flex-1 space-y-4">
                                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1.5">
@@ -152,11 +158,19 @@ export default function FindJobsPage() {
                                         {new Date(job.createdAt).toLocaleDateString()}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <p className="text-sm line-clamp-3 text-muted-foreground leading-relaxed">
-                                        {job.description}
-                                    </p>
-                                </div>
+                                <JobDetailsDialog
+                                    job={job}
+                                    isApplied={appliedJobs.includes(job.id)}
+                                    onApply={handleApply}
+                                    isApplying={applying === job.id}
+                                    trigger={
+                                        <div className="space-y-2 cursor-pointer group/desc">
+                                            <p className="text-sm line-clamp-3 text-muted-foreground leading-relaxed group-hover/desc:text-foreground transition-colors">
+                                                {job.description}
+                                            </p>
+                                        </div>
+                                    }
+                                />
                                 <div className="flex flex-wrap gap-2 pt-2">
                                     {job.skills?.slice(0, 3).map(skill => (
                                         <Badge key={skill} variant="outline" className="text-[10px] bg-muted/30 border-none rounded-full px-2 py-0.5 font-bold">
@@ -168,20 +182,32 @@ export default function FindJobsPage() {
                                     )}
                                 </div>
                             </CardContent>
-                            <CardFooter className="pt-4 border-t border-muted/50 bg-muted/10">
+
+                            <CardFooter className="pt-4 border-t border-muted/50 bg-muted/10 items-center justify-between gap-2">
+                                <JobDetailsDialog
+                                    job={job}
+                                    isApplied={appliedJobs.includes(job.id)}
+                                    onApply={handleApply}
+                                    isApplying={applying === job.id}
+                                    trigger={
+                                        <Button variant="ghost" size="sm" className="font-bold text-xs rounded-xl hover:bg-primary/5">
+                                            Full Details
+                                        </Button>
+                                    }
+                                />
                                 {appliedJobs.includes(job.id) ? (
-                                    <Button disabled className="w-full rounded-2xl h-11 bg-green-500/10 text-green-600 border-none hover:bg-green-500/10 font-bold gap-2">
+                                    <Button disabled className="flex-1 rounded-2xl h-11 bg-green-500/10 text-green-600 border-none hover:bg-green-500/10 font-bold gap-2">
                                         <CheckCircle2 className="h-4 w-4" />
                                         Applied
                                     </Button>
                                 ) : (
                                     <Button
-                                        className="w-full rounded-2xl h-11 font-bold shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all gap-2"
+                                        className="flex-1 rounded-2xl h-11 font-bold shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all gap-2"
                                         onClick={() => handleApply(job.id)}
                                         disabled={applying === job.id}
                                     >
                                         {applying === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                                        Apply Now
+                                        Apply
                                     </Button>
                                 )}
                             </CardFooter>

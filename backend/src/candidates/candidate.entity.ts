@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 import { User } from '../auth/user.entity';
+import { CandidateExperience } from './experience.entity';
 
 @Entity('candidates')
 export class Candidate {
@@ -12,6 +13,9 @@ export class Candidate {
     @OneToOne(() => User)
     @JoinColumn({ name: 'userId' })
     user: User;
+
+    @OneToMany(() => CandidateExperience, (experience) => experience.candidate)
+    experiences: CandidateExperience[];
 
     @Column({ nullable: true })
     resumeUrl: string;

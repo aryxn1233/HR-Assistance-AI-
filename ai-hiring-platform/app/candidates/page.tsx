@@ -196,7 +196,9 @@ export default function CandidatesPage() {
                                                         <AvatarFallback>{initials}</AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <div className="font-medium">{name}</div>
+                                                        <Link href={`/candidates/${candidate.id}`} className="font-medium hover:text-primary transition-colors">
+                                                            {name}
+                                                        </Link>
                                                         <div className="text-xs text-muted-foreground">{candidate.user?.email}</div>
                                                     </div>
                                                 </div>

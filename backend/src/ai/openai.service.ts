@@ -4,34 +4,64 @@ import OpenAI from 'openai';
 
 @Injectable()
 export class OpenAIService {
-    private openai: OpenAI;
+    private apiKeys: string[] = [];
+    private currentKeyIndex = 0;
+    private clients: OpenAI[] = [];
     private readonly logger = new Logger(OpenAIService.name);
 
     constructor(private configService: ConfigService) {
-        const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-        if (!apiKey) {
-            this.logger.warn('OPENAI_API_KEY not found in environment variables');
+        // Load all available OpenAI keys
+        const keys = [
+            this.configService.get<string>('OPENAI_API_KEY'),
+            this.configService.get<string>('OPENAI_API_KEY2'),
+            this.configService.get<string>('OPENAI_API_KEY3'),
+            this.configService.get<string>('OPENAI_API_KEY4'),
+            this.configService.get<string>('OPENAI_API_KEY5'),
+        ].filter(k => !!k) as string[];
+
+        if (keys.length === 0) {
+            this.logger.warn('No OPENAI_API_KEYs found in environment variables');
+            this.apiKeys = ['dummy-key'];
+        } else {
+            this.apiKeys = keys;
+            this.logger.log(`Initialized with ${this.apiKeys.length} OpenAI API keys.`);
         }
-        this.openai = new OpenAI({
-            apiKey: apiKey || 'dummy-key', // Fallback for dev/test if key missing
-        });
+
+        this.clients = this.apiKeys.map(key => new OpenAI({ apiKey: key }));
     }
 
     async generateResponse(systemPrompt: string, userPrompt: string): Promise<string> {
-        try {
-            const completion = await this.openai.chat.completions.create({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt },
-                ],
-                model: 'gpt-4-turbo-preview', // Or gpt-3.5-turbo
-            });
-            return completion.choices[0].message.content || '';
-        } catch (error) {
-            this.logger.error('Error generating AI response:', error);
-            // Fallback or rethrow
-            return 'AI Service Unavailable';
+        let attempts = 0;
+        const maxAttempts = this.apiKeys.length;
+
+        while (attempts < maxAttempts) {
+            const client = this.clients[this.currentKeyIndex];
+            try {
+                const completion = await client.chat.completions.create({
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt },
+                    ],
+                    model: 'gpt-4o-mini',
+                });
+                return completion.choices[0].message.content || 'AI Service Unavailable';
+            } catch (error: any) {
+                attempts++;
+                this.logger.error(`Error with OpenAI Key #${this.currentKeyIndex + 1}: ${error.message}`);
+
+                // If rate limit (429) or server error (5xx), switch key and retry
+                if (error.status === 429 || error.status >= 500) {
+                    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+                    this.logger.warn(`Switching to OpenAI API Key #${this.currentKeyIndex + 1} (Attempt ${attempts + 1}/${maxAttempts})`);
+                    continue;
+                }
+
+                // For other errors, just stop or handle specifically
+                break;
+            }
         }
+
+        return 'AI Service Unavailable after multiple retries';
     }
 
     async parseResume(resumeText: string): Promise<any> {
@@ -50,6 +80,39 @@ export class OpenAIService {
         } catch (e) {
             this.logger.error('Failed to parse AI response as JSON', e);
             return { error: 'Failed to parse resume' };
+        }
+    }
+
+    async evaluateResume(resumeText: string, jobDescription: string): Promise<any> {
+        const systemPrompt = `You are an expert technical recruiter.
+Compare the following resume with the job description.
+Score strictly from 0 to 100.
+Be strict.
+Return JSON only in this format:
+{
+  "skillMatchScore": number,
+  "experienceMatch": number,
+  "relevanceScore": number,
+  "overallScore": number,
+  "strengths": string[],
+  "weaknesses": string[]
+}`;
+
+        const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}`;
+        const response = await this.generateResponse(systemPrompt, userPrompt);
+        try {
+            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (e) {
+            this.logger.error('Failed to parse resume evaluation response', e);
+            return {
+                skillMatchScore: 0,
+                experienceMatch: 0,
+                relevanceScore: 0,
+                overallScore: 0,
+                strengths: [],
+                weaknesses: ['Evaluation failed due to parsing error'],
+            };
         }
     }
 
