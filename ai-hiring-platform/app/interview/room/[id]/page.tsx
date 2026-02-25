@@ -172,7 +172,7 @@ export default function InterviewRoomPage() {
 
             {/* Left: Avatar */}
             <div className="w-1/2 bg-black relative flex items-center justify-center border-r border-border">
-                <DIdAvatar />
+                <DIdAvatar interviewId={interviewId} />
 
                 {/* Status Overlay */}
                 <div className="absolute top-6 left-6 z-10">

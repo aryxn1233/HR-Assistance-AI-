@@ -9,6 +9,7 @@ import { InterviewAnswer } from './entities/interview-answer.entity';
 import { InterviewReport } from './entities/interview-report.entity';
 import { AIModule } from '../ai/ai.module';
 import { GeminiModule } from '../gemini/gemini.module';
+import { DIdModule } from '../did/did.module';
 
 import { Application } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
@@ -17,7 +18,8 @@ import { Candidate } from '../candidates/candidate.entity';
     imports: [
         TypeOrmModule.forFeature([Interview, InterviewQuestion, InterviewAnswer, InterviewReport, Application, Candidate]),
         AIModule,
-        GeminiModule
+        GeminiModule,
+        DIdModule
     ],
     controllers: [InterviewsController],
     providers: [InterviewsService, InterviewGateway],

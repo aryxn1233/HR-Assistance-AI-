@@ -8,6 +8,8 @@ import { InterviewReport, HiringRecommendation } from './entities/interview-repo
 import { GeminiService } from '../gemini/gemini.service';
 import { Application, ApplicationStatus } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
+import { DIdService } from '../did/did.service';
+import { DIdSessionManager } from '../did/did-session.manager';
 
 @Injectable()
 export class InterviewsService {
@@ -25,6 +27,8 @@ export class InterviewsService {
         @InjectRepository(Candidate)
         private candidatesRepository: Repository<Candidate>,
         private geminiService: GeminiService,
+        private didService: DIdService,
+        private didSessionManager: DIdSessionManager,
     ) { }
 
     async startInterviewByApplication(applicationId: string, userId: string): Promise<any> {
@@ -208,6 +212,16 @@ export class InterviewsService {
             status: InterviewStatus.IN_PROGRESS,
         });
 
+        // D-ID Speech Injection
+        const didSession = this.didSessionManager.getSession(interview.id);
+        if (didSession) {
+            try {
+                await this.didService.speak(didSession.sessionId, didSession.streamId, questionData.question);
+            } catch (error) {
+                console.error(`Failed to trigger D-ID speech for interview ${interview.id}:`, error.message);
+            }
+        }
+
         return { status: 'in_progress', question };
     }
 
@@ -272,6 +286,16 @@ export class InterviewsService {
             });
             interview.transcript = finalTranscript;
             interview.history = finalHistory;
+
+            // D-ID Speech Injection for closing message
+            const didSession = this.didSessionManager.getSession(interview.id);
+            if (didSession) {
+                try {
+                    await this.didService.speak(didSession.sessionId, didSession.streamId, closingMessage);
+                } catch (error) {
+                    console.error(`Failed to trigger D-ID speech for interview ${interview.id} completion:`, error.message);
+                }
+            }
         }
 
         // Gather all data for report
