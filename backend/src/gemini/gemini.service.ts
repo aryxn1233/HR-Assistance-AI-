@@ -99,29 +99,22 @@ export class GeminiService {
 
     async generateQuestion(context: any): Promise<QuestionData> {
         const prompt = `
-            You are a professional technical recruiter conducting a structured, adaptive interview.
+            You are a Senior Technical Interviewer conducting a mock interview for a software engineering position.
+            Your goal is to evaluate the candidate's technical skills and communication.
 
-            Rules:
-            - Ask one question at a time.
-            - Wait for candidate answer before next question.
-            - **Adaptive Probing**: Pay close attention to the candidate's previous answer. 
-                - If they mention proficiency in a specific language (e.g., Java, Python), ask a technical follow-up to test that depth.
-                - If they mention a specific project (e.g., Blockchain app, SaaS platform), ask about their specific role, the architecture, or a challenge they faced.
-                - Do NOT stick to a generic script if the candidate provides interesting technical hooks.
-            - Include:
-                - Technical questions based on resume AND conversation flow.
-                - Behavioral questions.
-                - Ethical alignment.
-                - Relocation (Bangalore).
-            - Maintain professional tone.
-            - End interview after sufficient evaluation (~8-12 questions).
-            - When interview is complete, say: "INTERVIEW_COMPLETE"
+            Guidelines:
+            1. Be professional but encouraging.
+            2. Ask only ONE technical question at a time.
+            3. If the user provides an answer, give brief feedback and then ask the next follow-up or a new question.
+            4. Stay focused on technical topics (JavaScript, React, Node.js, Systems Design, etc.).
+            5. Keep your responses concise (max 3 sentences) so the avatar remains engaging.
+            6. End interview after significant evaluation (~8-10 exchanges).
+            7. When interview is complete, say: "INTERVIEW_COMPLETE. [Closing Message]"
 
             Context:
             - Job Description: ${JSON.stringify(context.jobDescription)}
             - Candidate Resume: ${JSON.stringify(context.resume)}
             - Previous Questions/Answers: ${JSON.stringify(context.history || [])}
-            - Difficulty: ${context.difficulty || 'Medium'}
 
             Return ONLY valid JSON in this format:
             {
@@ -166,11 +159,11 @@ export class GeminiService {
         `;
 
         const fallback: EvaluationData = {
-            technicalScore: 7,
-            accuracyScore: 7,
-            communicationScore: 7,
-            confidenceScore: 7,
-            feedback: 'Answer recorded. AI evaluation temporarily unavailable.'
+            technicalScore: 0,
+            accuracyScore: 0,
+            communicationScore: 0,
+            confidenceScore: 0,
+            feedback: 'Answer recorded but AI evaluation encountered a temporary issue.'
         };
 
         return this.runWithRotation(async (model) => {
@@ -181,48 +174,47 @@ export class GeminiService {
 
     async generateReport(interviewData: any): Promise<any> {
         const prompt = `
-            Based on the following interview transcript, generate a structured evaluation report.
-            Transcript: ${JSON.stringify(interviewData.messages)}
+            You are an Expert Technical Recruiter. Analyze the following interview transcript and provide a detailed report.
+            
+            Conversation History:
+            ${JSON.stringify(interviewData.messages)}
 
-            Evaluation must consider:
-            - Relocation willingness (Bangalore question)
-            - Ethical alignment
-            - Clarity in career goals
-            - Salary expectation flexibility
-            - Long-term commitment signals
+            Your report MUST follow this exact format in the "detailed_feedback" field:
+            Score: [Number from 0 to 100]
+            Feedback: [3-4 sentences summarizing technical performance and communication]
+            Strengths: [Bullet points of what they did well]
+            Areas for Improvement: [Bullet points of what to work on]
 
             Return ONLY valid JSON format:
             {
+              "overall_rating": 0-10,
               "technical_score": 0-10,
               "communication_score": 0-10,
               "problem_solving_score": 0-10,
               "behavioral_score": 0-10,
               "culture_fit_score": 0-10,
-              "overall_rating": 0-10,
-              "strengths": [],
-              "weaknesses": [],
-              "detailed_feedback": "",
+              "strengths": ["string"],
+              "weaknesses": ["string"],
+              "detailed_feedback": "FULL FORMATTED REPORT AS DESCRIBED ABOVE",
               "fit_for_role": "YES" | "NO",
-              "confidence_level": "Low" | "Medium" | "High",
-              "joining_probability_percent": 0-100,
-              "joining_reasoning": ""
+              "joining_probability_percent": 0-100
             }
         `;
 
         const fallback = {
-            technical_score: 7,
-            communication_score: 7,
-            problem_solving_score: 7,
-            behavioral_score: 7,
-            culture_fit_score: 7,
-            overall_rating: 7,
-            strengths: ['Candidate completed the interview'],
-            weaknesses: ['AI evaluation temporarily unavailable'],
-            detailed_feedback: 'Interview completed. AI-generated evaluation is temporarily unavailable due to API rate limits.',
-            fit_for_role: 'YES',
-            confidence_level: 'Medium',
-            joining_probability_percent: 70,
-            joining_reasoning: 'Evaluation pending full AI analysis.'
+            technical_score: 0,
+            communication_score: 0,
+            problem_solving_score: 0,
+            behavioral_score: 0,
+            culture_fit_score: 0,
+            overall_rating: 0,
+            strengths: ['Interview record available'],
+            weaknesses: ['Interview too short or AI evaluation service unavailable'],
+            detailed_feedback: 'Score: 0\nFeedback: The interview was either too short to evaluate or the AI service encountered an error. Manual review of the transcript is recommended.',
+            fit_for_role: 'NO',
+            confidence_level: 'Low',
+            joining_probability_percent: 0,
+            joining_reasoning: 'Incomplete or failed AI analysis.'
         };
 
         return this.runWithRotation(async (model) => {
@@ -232,10 +224,56 @@ export class GeminiService {
     }
 
 
+    async refineInterviewQuestions(questions: string[], resume: any, jobTitle: string): Promise<string[]> {
+        const prompt = `
+            You are a Senior Technical Recruiter. I have a list of 20 interview questions for a ${jobTitle} position.
+            Candidate Summary: ${JSON.stringify(resume)}
+
+            Original Questions:
+            ${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+            Tasks:
+            1. Improve the phrasing to be more professional, natural, and diverse.
+            2. Increase the technical depth based on the candidate's specific background.
+            3. Ensure each question is a SINGLE technical question (no combined questions).
+            4. **CRITICAL: DO NOT start every question with the same phrase.**
+               - BAD: "Explain how you...", "Explain how you..."
+               - GOOD: Vary your openers: "Walk me through...", "How do you approach...", "In your experience with...", "Tell me about...", "Describe a time when..."
+            5. Keep exactly 20 questions.
+            6. Return ONLY a JSON array of strings.
+
+            Format: ["Question 1", "Question 2", ...]
+        `;
+
+        const fallback = questions;
+
+        return this.runWithRotation(async (model) => {
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const cleaned = this.cleanJson(text);
+            if (Array.isArray(cleaned) && cleaned.length === 20) {
+                return cleaned;
+            }
+            return fallback;
+        }, fallback);
+    }
+
     private cleanJson(text: string): any {
         try {
             // Remove markdown code blocks if present
             const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            // Try to find the first [ and last ]
+            const start = cleaned.indexOf('[');
+            const end = cleaned.lastIndexOf(']');
+            if (start !== -1 && end !== -1) {
+                return JSON.parse(cleaned.substring(start, end + 1));
+            }
+            // For objects
+            const objStart = cleaned.indexOf('{');
+            const objEnd = cleaned.lastIndexOf('}');
+            if (objStart !== -1 && objEnd !== -1) {
+                return JSON.parse(cleaned.substring(objStart, objEnd + 1));
+            }
             return JSON.parse(cleaned);
         } catch (e) {
             console.error('Failed to parse Gemini JSON response:', text);

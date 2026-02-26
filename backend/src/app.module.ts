@@ -28,7 +28,7 @@ import { DIdModule } from './did/did.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // Auto-create tables (dev only)
+        synchronize: false, // Auto-create tables (dev only)
       }),
       inject: [ConfigService],
     }),

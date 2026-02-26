@@ -107,7 +107,6 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     <SidebarMenuItem>
                         <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
                             <Avatar className="h-8 w-8 rounded-lg">
-                                <AvatarImage src={user?.avatarUrl || "/avatars/candidate.png"} alt="User" />
                                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                             </Avatar>
                             <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">

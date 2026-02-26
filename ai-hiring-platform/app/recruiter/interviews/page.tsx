@@ -28,6 +28,7 @@ import {
 import api from "@/lib/api"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import Link from "next/link"
 
 export default function RecruiterInterviewsPage() {
     const [interviews, setInterviews] = useState<any[]>([])
@@ -81,17 +82,23 @@ export default function RecruiterInterviewsPage() {
                             <CardHeader className="p-6 cursor-pointer" onClick={() => toggleExpand(interview.id)}>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                            {interview.candidate?.user?.firstName?.[0] || <User size={20} />}
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-lg">
-                                                {interview.candidate?.user?.firstName} {interview.candidate?.user?.lastName}
-                                            </CardTitle>
-                                            <CardDescription className="flex items-center gap-1.5 font-medium">
-                                                <Briefcase size={12} /> {interview.job?.title}
-                                            </CardDescription>
-                                        </div>
+                                        <Link
+                                            href={`/candidates/${interview.candidate?.id}`}
+                                            className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                                {interview.candidate?.user?.firstName?.[0] || <User size={20} />}
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-lg">
+                                                    {interview.candidate?.user?.firstName} {interview.candidate?.user?.lastName}
+                                                </CardTitle>
+                                                <CardDescription className="flex items-center gap-1.5 font-medium">
+                                                    <Briefcase size={12} /> {interview.job?.title}
+                                                </CardDescription>
+                                            </div>
+                                        </Link>
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-6">
@@ -187,25 +194,32 @@ export default function RecruiterInterviewsPage() {
                                                         <Badge variant="outline" className="rounded-full">Full Session</Badge>
                                                     </div>
                                                     <Card className="flex-1 border-none shadow-sm rounded-3xl bg-white flex flex-col overflow-hidden">
-                                                        <ScrollArea className="flex-1 p-6">
+                                                        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
                                                             <div className="space-y-6">
-                                                                {interview.transcript?.map((msg: any, i: number) => (
-                                                                    <div key={i} className={`flex flex-col ${msg.speaker === 'Candidate' ? 'items-end' : 'items-start'}`}>
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                                                                {msg.speaker === 'AI' ? 'AI Recruiter' : 'Candidate'}
-                                                                            </span>
+                                                                {interview.transcript && interview.transcript.length > 0 ? (
+                                                                    interview.transcript.map((msg: any, i: number) => (
+                                                                        <div key={i} className={`flex flex-col ${msg.speaker === 'Candidate' ? 'items-end' : 'items-start'}`}>
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                                                                    {msg.speaker === 'AI' ? 'AI Recruiter' : 'Candidate'}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className={`max-w-[90%] p-4 rounded-2xl text-sm ${msg.speaker === 'Candidate'
+                                                                                ? 'bg-blue-600 text-white rounded-tr-none'
+                                                                                : 'bg-slate-100 text-slate-800 rounded-tl-none'
+                                                                                }`}>
+                                                                                {msg.message}
+                                                                            </div>
                                                                         </div>
-                                                                        <div className={`max-w-[90%] p-4 rounded-2xl text-sm ${msg.speaker === 'Candidate'
-                                                                            ? 'bg-blue-600 text-white rounded-tr-none'
-                                                                            : 'bg-slate-100 text-slate-800 rounded-tl-none'
-                                                                            }`}>
-                                                                            {msg.message}
-                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="flex flex-col items-center justify-center h-full text-center p-8 text-slate-400">
+                                                                        <MessageSquare className="h-8 w-8 mb-2 opacity-20" />
+                                                                        <p className="text-sm italic">No transcript available for this session.</p>
                                                                     </div>
-                                                                ))}
+                                                                )}
                                                             </div>
-                                                        </ScrollArea>
+                                                        </div>
                                                     </Card>
                                                 </div>
                                             </div>
@@ -217,6 +231,6 @@ export default function RecruiterInterviewsPage() {
                     ))
                 )}
             </div>
-        </div>
+        </div >
     )
 }

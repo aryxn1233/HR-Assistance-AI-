@@ -6,10 +6,12 @@ import { InterviewQuestion, QuestionDifficulty } from './entities/interview-ques
 import { InterviewAnswer } from './entities/interview-answer.entity';
 import { InterviewReport, HiringRecommendation } from './entities/interview-report.entity';
 import { GeminiService } from '../gemini/gemini.service';
+import { OpenAIService } from '../ai/openai.service';
 import { Application, ApplicationStatus } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
 import { DIdService } from '../did/did.service';
 import { DIdSessionManager } from '../did/did-session.manager';
+import { InterviewSessionService } from './question-generation/interview-session.service';
 
 @Injectable()
 export class InterviewsService {
@@ -27,8 +29,10 @@ export class InterviewsService {
         @InjectRepository(Candidate)
         private candidatesRepository: Repository<Candidate>,
         private geminiService: GeminiService,
+        private openAIService: OpenAIService,
         private didService: DIdService,
         private didSessionManager: DIdSessionManager,
+        private interviewSessionService: InterviewSessionService,
     ) { }
 
     async startInterviewByApplication(applicationId: string, userId: string): Promise<any> {
@@ -77,10 +81,10 @@ export class InterviewsService {
             await this.interviewsRepository.save(interview);
         }
 
-        return this.startSession(interview.id);
+        return interview;
     }
 
-    async submitInterviewScore(applicationId: string, interviewScore: number): Promise<Application> {
+    async submitInterviewScore(applicationId: string, interviewScore: number, feedback?: any): Promise<Application> {
         const application = await this.applicationsRepository.findOne({ where: { id: applicationId } });
         if (!application) throw new NotFoundException('Application not found');
 
@@ -98,7 +102,42 @@ export class InterviewsService {
             interviewScore,
             finalHiringScore,
             status,
+            feedback: feedback || application.feedback
         });
+
+        // Also mark the associated interview as completed if found
+        const interview = await this.interviewsRepository.findOne({ where: { applicationId } });
+        if (interview) {
+            // Update basic interview fields
+            await this.interviewsRepository.update(interview.id, {
+                status: 'completed',
+                completed: true,
+                score: interviewScore,
+                feedback: feedback || interview.feedback,
+                fitDecision: feedback?.fit_for_role || feedback?.fit,
+                joinProbability: feedback?.joining_probability_percent || feedback?.score
+            });
+
+            // Create or update InterviewReport for the dashboard
+            if (feedback) {
+                const existingReport = await this.reportsRepository.findOne({ where: { interviewId: interview.id } });
+                const reportData = {
+                    interviewId: interview.id,
+                    overallScore: (feedback.overall_rating || feedback.score / 10 || interviewScore / 10) * 10,
+                    strengths: feedback.strengths || [],
+                    weaknesses: feedback.weaknesses || feedback.areas_for_improvement || [],
+                    recommendation: (feedback.fit_for_role === 'YES' || feedback.fit?.includes('Fit')) ? HiringRecommendation.HIRE : HiringRecommendation.NO_HIRE,
+                    detailedAnalysis: feedback
+                };
+
+                if (existingReport) {
+                    await this.reportsRepository.update(existingReport.id, reportData);
+                } else {
+                    const newReport = this.reportsRepository.create(reportData);
+                    await this.reportsRepository.save(newReport);
+                }
+            }
+        }
 
         return this.applicationsRepository.findOne({ where: { id: applicationId } }) as Promise<Application>;
     }
@@ -108,16 +147,21 @@ export class InterviewsService {
         return this.interviewsRepository.save(interview) as unknown as Promise<Interview>;
     }
 
-    async findAll(userId?: string): Promise<any[]> {
+    async findAll(user?: any): Promise<any[]> {
         const query = this.interviewsRepository.createQueryBuilder('interview')
             .leftJoinAndSelect('interview.candidate', 'candidate')
             .leftJoinAndSelect('candidate.user', 'user')
             .leftJoinAndSelect('interview.job', 'job')
             .leftJoinAndSelect('interview.report', 'report')
+            .leftJoinAndSelect('interview.application', 'application')
             .orderBy('interview.createdAt', 'DESC');
 
-        if (userId) {
-            query.where('user.id = :userId', { userId });
+        if (user) {
+            // Only filter if candidate. Recruiter sees all.
+            if (user.role === 'candidate') {
+                query.where('user.id = :userId', { userId: user.userId });
+            }
+            // Add recruiter specific filtering here if multitenancy is needed later
         }
 
         return query.getMany();
@@ -132,79 +176,47 @@ export class InterviewsService {
         return interview;
     }
 
-    async startSession(id: string): Promise<any> {
+    async startSession(id: string, streamId?: string, sessionId?: string): Promise<any> {
         try {
             const interview = await this.findOne(id);
-            console.log(`startSession: interview ${id} status=${interview.status} questions=${interview.questions?.length}`);
-
             if (interview.status === InterviewStatus.COMPLETED) {
                 return { status: 'completed', report: interview.report };
             }
 
-            // Return current state or generate opening if newly created
-            if (interview.status === InterviewStatus.CREATED) {
-                return await this.generateNextQuestion(interview);
+            // Register D-ID Session for speech injection
+            if (streamId && sessionId) {
+                this.didSessionManager.setSession(id, { streamId, sessionId });
+                console.log(`D-ID: Session ${sessionId} registered for interview ${id}`);
             }
 
-            const questionCount = interview.questions?.length || 0;
-            if (questionCount > 0) {
-                const lastQuestion = interview.questions.sort((a, b) => a.orderNumber - b.orderNumber)[questionCount - 1];
-                const answer = await this.answersRepository.findOne({ where: { questionId: lastQuestion.id } });
-                if (!answer) {
-                    return { status: 'in_progress', question: lastQuestion };
-                }
-                return await this.generateNextQuestion(interview);
-            }
-
-            return await this.generateNextQuestion(interview);
+            return await this.fetchAndSpeakNextQuestion(interview);
         } catch (err: any) {
-            const msg = `startSession error for ${id}: ${err?.stack || err?.message || err}\n`;
-            console.error(msg);
-            require('fs').writeFileSync('interview-error.log', msg);
+            console.error(`startSession error for ${id}:`, err);
             throw err;
         }
     }
 
-    private async generateNextQuestion(interview: Interview): Promise<any> {
-        // Update status if it's newly created
-        if (interview.status === InterviewStatus.CREATED) {
-            interview.status = InterviewStatus.IN_PROGRESS;
-            // No save here yet, will save with question
+    private async fetchAndSpeakNextQuestion(interview: Interview): Promise<any> {
+        const questionText = await this.interviewSessionService.getNextQuestion(interview.applicationId);
+
+        if (!questionText) {
+            return this.finishInterview(interview, "The interview is now complete. Thank you for your time!");
         }
 
-        const questionCount = await this.questionsRepository.count({ where: { interviewId: interview.id } });
-
-        // Context for AI - simplified using history
-        const context = {
-            jobDescription: interview.job?.description,
-            resume: (interview.candidate?.resumeText || interview.candidate?.skills || null),
-            history: interview.history || [],
-            difficulty: 'Medium',
-        };
-
-        const questionData = await this.geminiService.generateQuestion(context);
-
-        if ((questionData as any).isComplete) {
-            const closingMsg = questionData.question === 'INTERVIEW_COMPLETE'
-                ? 'The interview is now complete. Thank you for your time!'
-                : questionData.question;
-            return this.finishInterview(interview, closingMsg);
-        }
-
-        // Save Question
+        // Save Question to DB (for history/tracking)
         const question = this.questionsRepository.create({
             interviewId: interview.id,
-            questionText: questionData.question,
-            skillFocus: questionData.skillFocus || 'General',
-            difficulty: (questionData.difficulty as QuestionDifficulty) || QuestionDifficulty.MEDIUM,
-            orderNumber: questionCount + 1
+            questionText: questionText,
+            skillFocus: 'Technical',
+            difficulty: QuestionDifficulty.MEDIUM,
+            orderNumber: (interview.currentQuestionIndex || 0) + 1
         });
         await this.questionsRepository.save(question);
 
-        // Update only the specific fields on Interview — do NOT use save(interview) as it
-        // will try to cascade-update loaded relations (candidate, job, etc.) and fail.
-        const newTranscript = [...(interview.transcript || []), { speaker: 'AI' as const, message: questionData.question, timestamp: new Date() }];
-        const newHistory = [...(interview.history || []), { role: 'ai', content: questionData.question }];
+        // Update Interview state
+        const newTranscript = [...(interview.transcript || []), { speaker: 'AI' as const, message: questionText, timestamp: new Date() }];
+        const newHistory = [...(interview.history || []), { role: 'ai', content: questionText }];
+
         await this.interviewsRepository.update(interview.id, {
             transcript: newTranscript,
             history: newHistory,
@@ -216,9 +228,9 @@ export class InterviewsService {
         const didSession = this.didSessionManager.getSession(interview.id);
         if (didSession) {
             try {
-                await this.didService.speak(didSession.sessionId, didSession.streamId, questionData.question);
+                await this.didService.speak(didSession.sessionId, didSession.streamId, questionText);
             } catch (error) {
-                console.error(`Failed to trigger D-ID speech for interview ${interview.id}:`, error.message);
+                console.error(`Failed to trigger D-ID speech:`, error.message);
             }
         }
 
@@ -271,7 +283,8 @@ export class InterviewsService {
         interview.history = updatedHistory;
 
         // Trigger Next Step
-        return await this.generateNextQuestion(interview);
+        await this.interviewSessionService.submitAnswerAndAdvance(interview.applicationId);
+        return await this.fetchAndSpeakNextQuestion(interview);
     }
 
     private async finishInterview(interview: Interview, closingMessage?: string): Promise<any> {
@@ -298,31 +311,55 @@ export class InterviewsService {
             }
         }
 
-        // Gather all data for report
-        const questions = await this.questionsRepository.find({ where: { interviewId: interview.id } });
-        const answers: { question: InterviewQuestion; answer: InterviewAnswer; }[] = [];
-        for (const q of questions) {
-            const a = await this.answersRepository.findOne({ where: { questionId: q.id } });
-            if (a) answers.push({ question: q, answer: a });
+        // Check for minimum interactions (Candidate must have at least 3 answers for valid AI report)
+        const candidateAnswersCount = (interview.transcript || []).filter(t => t.speaker === 'Candidate').length;
+
+        let reportData: any;
+
+        if (candidateAnswersCount < 3) {
+            console.log(`Interview ${interview.id} has only ${candidateAnswersCount} answers. Bypassing AI evaluation.`);
+            reportData = {
+                overall_rating: 0,
+                technical_score: 0,
+                communication_score: 0,
+                problem_solving_score: 0,
+                behavioral_score: 0,
+                culture_fit_score: 0,
+                strengths: ['Interview completed'],
+                weaknesses: ['Interview too short for meaningful analysis'],
+                detailed_feedback: 'Score: 0\nFeedback: The interview was completed too quickly with insufficient interaction. Minimum 3 responses are required for AI evaluation.\nStrengths: \nAreas for Improvement: Complete the full interview next time.',
+                fit_for_role: 'NO',
+                joining_probability_percent: 0
+            };
+        } else {
+            reportData = await this.openAIService.generateInterviewReport({
+                job: interview.job?.title,
+                messages: interview.transcript
+            });
         }
 
-        const reportData = await this.geminiService.generateReport({
-            job: interview.job?.title,
-            messages: interview.transcript
-        });
-
-        // Save Report
         const report = this.reportsRepository.create({
             interviewId: interview.id,
             overallScore: reportData.overall_rating * 10,
-            strengths: reportData.strengths,
-            weaknesses: reportData.weaknesses,
+            strengths: reportData.strengths || [],
+            weaknesses: reportData.weaknesses || [],
             recommendation: reportData.fit_for_role === 'YES' ? HiringRecommendation.HIRE : HiringRecommendation.NO_HIRE,
             detailedAnalysis: reportData
         });
         await this.reportsRepository.save(report);
 
-        // Update Interview fields — use update() not save() to avoid TypeORM cascade issues
+        // Clean up D-ID session if it exists
+        const didSession = this.didSessionManager.getSession(interview.id);
+        if (didSession) {
+            try {
+                await this.didService.closeSession(didSession.streamId, didSession.sessionId);
+                this.didSessionManager.removeSession(interview.id);
+                console.log(`D-ID: Session cleaned up for finished interview ${interview.id}`);
+            } catch (e) {
+                console.warn(`D-ID: Failed to clean up session for interview ${interview.id}`, e);
+            }
+        }
+
         const finalScore = reportData.overall_rating * 10;
         await this.interviewsRepository.update(interview.id, {
             status: InterviewStatus.COMPLETED,
@@ -332,9 +369,31 @@ export class InterviewsService {
         });
 
         // Update Application Status
-        await this.submitInterviewScore(interview.applicationId, finalScore);
+        await this.submitInterviewScore(interview.applicationId, finalScore, reportData);
 
         return { status: 'completed', report };
+    }
+
+    async finishSession(id: string): Promise<any> {
+        const interview = await this.findOne(id);
+        return this.finishInterview(interview, "The interview is now complete. Thank you!");
+    }
+
+    async speakCurrentQuestion(id: string): Promise<void> {
+        const interview = await this.findOne(id);
+        const transcript = interview.transcript || [];
+        // Find the last AI message
+        const lastAiMsg = [...transcript].reverse().find(t => t.speaker === 'AI');
+
+        if (lastAiMsg) {
+            const didSession = this.didSessionManager.getSession(id);
+            if (didSession) {
+                console.log(`D-ID: Re-triggering speech for interview ${id}: "${lastAiMsg.message.slice(0, 30)}..."`);
+                await this.didService.speak(didSession.sessionId, didSession.streamId, lastAiMsg.message);
+            } else {
+                console.warn(`D-ID: No active session found to speak for interview ${id}`);
+            }
+        }
     }
 
 }

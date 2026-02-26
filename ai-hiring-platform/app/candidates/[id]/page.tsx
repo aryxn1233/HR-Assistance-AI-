@@ -75,8 +75,16 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                 jobId,
                 status: 'created'
             })
-            toast.success("Interview session created")
-            // Navigation or UI update can happen here
+            const data = response.data
+            toast.success("Interview session created. Redirecting to interview room...")
+            // Redirect to the standalone D-ID interview project with context
+            const interviewId = data.question?.interviewId || data.id;
+            const appId = data.applicationId || (candidate.applications?.[0]?.id);
+            const token = localStorage.getItem('token');
+
+            setTimeout(() => {
+                window.location.href = `http://localhost:3001?applicationId=${appId}&interviewId=${interviewId}&token=${token}`;
+            }, 1000)
             fetchDetails()
         } catch (error) {
             console.error("Failed to create interview", error)
@@ -335,11 +343,32 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             <span className="text-xs font-bold text-slate-500">Join probability</span>
                                             <span className="text-xs font-bold text-green-600">{interview.joinProbability}%</span>
                                         </div>
-                                        <Button variant="ghost" className="w-full rounded-xl text-primary font-bold text-xs hover:bg-primary/5 mt-2" asChild>
-                                            <Link href={`/interviews`}>
-                                                View Transcript <ExternalLink size={12} className="ml-2" />
-                                            </Link>
-                                        </Button>
+                                        <div className="pt-2">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                                                <MessageSquare size={12} /> Interview Session Transcript
+                                            </h4>
+                                            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                                                {interview.transcript && interview.transcript.length > 0 ? (
+                                                    interview.transcript.map((msg: any, idx: number) => (
+                                                        <div key={idx} className={`flex flex-col ${msg.speaker === 'Candidate' ? 'items-end' : 'items-start'}`}>
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 px-1">
+                                                                {msg.speaker === 'AI' ? 'AI Recruiter' : 'Candidate'}
+                                                            </span>
+                                                            <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.speaker === 'Candidate'
+                                                                ? 'bg-blue-600 text-white rounded-tr-none'
+                                                                : 'bg-slate-100 text-slate-800 rounded-tl-none'
+                                                                }`}>
+                                                                {msg.message}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center py-8 text-slate-400 text-xs italic">
+                                                        No transcript available for this session.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))}

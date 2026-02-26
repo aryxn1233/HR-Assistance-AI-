@@ -12,6 +12,7 @@ import { Job } from '../jobs/job.entity';
 import { ScoringModule } from '../scoring/scoring.module';
 
 import { Interview } from '../interviews/entities/interview.entity';
+import { InterviewQuestionModule } from '../interviews/question-generation/interview-question.module';
 
 @Module({
     imports: [
@@ -20,6 +21,7 @@ import { Interview } from '../interviews/entities/interview.entity';
         AuthModule,
         JobsModule,
         ScoringModule,
+        InterviewQuestionModule,
     ],
     controllers: [CandidatesController],
     providers: [CandidatesService],

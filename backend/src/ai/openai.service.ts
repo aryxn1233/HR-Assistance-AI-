@@ -149,4 +149,45 @@ Return JSON only in this format:
             return { score: 0, feedback: 'Error evaluating answer' };
         }
     }
+
+    async generateInterviewReport(interviewData: any): Promise<any> {
+        const systemPrompt = `You are an expert technical recruiter. Analyze the interview transcript and provide a detailed report.
+    Return ONLY valid JSON with no extra text.
+    Format your response exactly as follows:
+    {
+      "overall_rating": 0-10,
+      "technical_score": 0-10,
+      "communication_score": 0-10,
+      "problem_solving_score": 0-10,
+      "behavioral_score": 0-10,
+      "culture_fit_score": 0-10,
+      "strengths": ["string"],
+      "weaknesses": ["string"],
+      "detailed_feedback": "Score: [0-100]\\nFeedback: [summary]\\nStrengths: [bullets]\\nAreas for Improvement: [bullets]",
+      "fit_for_role": "YES" | "NO",
+      "joining_probability_percent": 0-100
+    }`;
+
+        const userPrompt = `Job Title: ${interviewData.job}\nTranscript:\n${JSON.stringify(interviewData.messages)}`;
+        const response = await this.generateResponse(systemPrompt, userPrompt);
+        try {
+            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (e) {
+            this.logger.error('Failed to parse interview report response', e);
+            return {
+                overall_rating: 0,
+                technical_score: 0,
+                communication_score: 0,
+                problem_solving_score: 0,
+                behavioral_score: 0,
+                culture_fit_score: 0,
+                strengths: ['Interview record available'],
+                weaknesses: ['Interview too short or AI evaluation service unavailable'],
+                detailed_feedback: 'Score: 0\\nFeedback: The interview was either too short to evaluate or the AI service encountered an error. Manual review of the transcript is recommended.',
+                fit_for_role: 'NO',
+                joining_probability_percent: 0
+            };
+        }
+    }
 }

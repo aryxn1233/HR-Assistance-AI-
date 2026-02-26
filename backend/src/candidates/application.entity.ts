@@ -60,11 +60,29 @@ export class Application {
     @Column({ default: false })
     interviewUnlocked: boolean;
 
+    @Column('json', { nullable: true })
+    feedback: any;
+
     @Column({
         type: 'varchar',
         default: 'applied',
     })
     status: string;
+
+    @Column('json', { nullable: true })
+    interviewQuestions: any[];
+
+    @Column('int', { default: 0 })
+    currentQuestionIndex: number;
+
+    @Column('json', { nullable: true })
+    parsedResume: any;
+
+    @Column({
+        type: 'varchar',
+        default: 'not_started',
+    })
+    interviewStatus: string;
 
     @CreateDateColumn()
     createdAt: Date;

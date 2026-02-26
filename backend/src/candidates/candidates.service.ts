@@ -12,6 +12,9 @@ const pdf = require('pdf-parse');
 
 import { Interview } from '../interviews/entities/interview.entity';
 import { CandidateExperience } from './experience.entity';
+import { ResumeParserService } from '../interviews/question-generation/resume-parser.service';
+import { SkillMatchingService } from '../interviews/question-generation/skill-matching.service';
+import { QuestionGenerationService } from '../interviews/question-generation/question-generation.service';
 
 @Injectable()
 export class CandidatesService {
@@ -29,6 +32,9 @@ export class CandidatesService {
         private openAIService: OpenAIService,
         private authService: AuthService,
         private scoringService: ScoringService,
+        private resumeParserService: ResumeParserService,
+        private skillMatchingService: SkillMatchingService,
+        private questionGenerationService: QuestionGenerationService,
         private dataSource: DataSource,
     ) { }
 
@@ -172,6 +178,28 @@ export class CandidatesService {
         const scoringResult = await this.scoringService.evaluateResume(candidate.resumeText, job.description);
 
         const isEligible = scoringResult.resumeScore >= 40;
+        let interviewQuestions: string[] = [];
+        let parsedResume: any = null;
+
+        if (isEligible) {
+            try {
+                // 1. Parse Resume
+                parsedResume = await this.resumeParserService.parse(candidate.resumeText);
+
+                // 2. Skill Matching
+                const skillMatch = this.skillMatchingService.match(job.requiredSkills || [], parsedResume.skills || []);
+
+                // 3. Generate Questions
+                interviewQuestions = await this.questionGenerationService.generate20Questions(
+                    parsedResume,
+                    skillMatch,
+                    job.title
+                );
+            } catch (err) {
+                console.error('Failed to pre-generate questions:', err);
+                // Fallback: empty array, will handle during session if needed
+            }
+        }
 
         const application = this.applicationsRepository.create({
             candidateId: candidate.id,
@@ -182,6 +210,9 @@ export class CandidatesService {
             shortlisted: isEligible,
             interviewUnlocked: isEligible,
             status: isEligible ? ApplicationStatus.INTERVIEW_ELIGIBLE : ApplicationStatus.REJECTED_AI,
+            interviewQuestions,
+            parsedResume,
+            interviewStatus: isEligible ? 'ready' : 'not_started'
         });
 
         const savedApp = await this.applicationsRepository.save(application);

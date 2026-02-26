@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>AI Interview Prep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --primary: #7459fe;
+      --primary-hover: #9480ff;
+      --bg: #0f172a;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    #app-container {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Main Section (Left) */
+    .view-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      gap: 30px;
+      position: relative;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar Section (Right) */
+    .sidebar-section {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    #chat-history {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    /* Chat Bubbles */
+    .message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    .message.interviewer {
+      align-self: flex-start;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-meta {
+      font-size: 0.75rem;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+    }
+
+    .interviewer .message-meta {
+      margin-left: 2px;
+    }
+
+    .user .message-meta {
+      text-align: right;
+      margin-right: 2px;
+    }
+
+    /* Video Card */
+    #video-card {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      aspect-ratio: 1 / 1;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 4px solid var(--glass-border);
+      box-shadow: 0 0 60px rgba(116, 89, 254, 0.1);
+      background: #000;
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transition: opacity 0.2s ease;
+      background: #000;
+    }
+
+    /* Controls Panel in Sidebar bottom */
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid var(--glass-border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    #main-action-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    #main-action-btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    #main-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #end-interview-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    #end-interview-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Modal Styles */
+    #report-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 650px;
+      padding: 40px;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .report-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    #report-score {
+      font-size: 4rem;
+      font-weight: 800;
+      background: linear-gradient(to bottom right, #b388ff, #7459fe);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 10px 0;
+    }
+
+    .report-body {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 30px;
+      padding-right: 10px;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .report-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .report-body::-webkit-scrollbar-thumb {
+      background: var(--glass-border);
+      border-radius: 10px;
+    }
+
+    .report-footer {
+      display: flex;
+      justify-content: center;
+    }
+
+    #download-btn {
+      padding: 12px 32px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    #download-btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    #chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: white;
+      outline: none;
+    }
+
+    #send-btn {
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+    }
+
+    /* Badge & Status Area */
+    .status-area {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .badge span {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Animations */
+    @keyframes pulse-red {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+      }
+
+      70% {
+        box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    .is-listening {
+      animation: pulse-red 2s infinite;
+      background-color: #ef4444 !important;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Dev tools minimal */
+    #dev-trigger {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app-container">
+    <!-- Main Section (Left) -->
+    <div class="view-section">
+      <div id="video-card">
+        <video id="idle-video-element" autoplay loop playsinline></video>
+        <video id="stream-video-element" autoplay playsinline style="opacity: 0"></video>
+      </div>
+
+      <div class="status-area">
+        <div class="badge">Mic: <span id="mic-status-label">Checking...</span></div>
+        <div class="badge">Session: <span id="session-status-label">Not Started</span></div>
+      </div>
+
+      <div id="dev-trigger">⚙️</div>
+    </div>
+
+    <!-- Sidebar Section (Right) -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <h2>Conversation History</h2>
+      </div>
+
+      <div id="chat-history">
+        <div class="message interviewer">
+          <div class="message-meta">Interviewer</div>
+          Welcome! Click the button below to start your mock technical interview.
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="main-action-btn">Start Technical Interview</button>
+        <button id="end-interview-btn" class="hidden">End Interview & Report</button>
+
+        <div id="user-input-area" class="input-row hidden">
+          <input id="chat-input" type="text" placeholder="Type your answer...">
+          <button id="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dev Info (Hidden Backdrop) -->
+    <div id="dev-overlay" class="hidden"
+      style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div
+        style="background: #1e293b; padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; line-height: 2;">
+        <h3 style="margin-top:0">Diagnostics</h3>
+        ICE Gathering: <span id="ice-gathering-status-label"></span><br />
+        ICE Status: <span id="ice-status-label"></span><br />
+        Peer Status: <span id="peer-status-label"></span><br />
+        Signaling: <span id="signaling-status-label"></span><br />
+        Stream Event: <span id="stream-event-label"></span><br />
+        Streaming Status: <span id="streaming-status-label"></span><br />
+        <button id="close-dev"
+          style="margin-top: 20px; padding: 10px 20px; border-radius: 8px; border: none; background: #ef4444; color: white; cursor:pointer">Close</button>
+        <button id="destroy-button"
+          style="margin-top: 20px; padding: 10px 20px; border-radius: 8px; border: none; background: #475569; color: white; cursor:pointer">Destroy
+          Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Modal -->
+  <div id="report-modal" class="hidden">
+    <div class="modal-content">
+      <div class="modal-close" id="close-report">&times;</div>
+      <div class="report-header">
+        <h2 style="margin:0; font-size: 1.5rem;">Interview Completed</h2>
+        <div id="report-score">--</div>
+        <div style="color: var(--text-muted); font-size: 0.9rem;">Performance Score</div>
+      </div>
+      <div class="report-body" id="report-text">
+        Analyzing your performance... please wait.
+      </div>
+      <div class="report-footer" style="gap: 15px;">
+        <button id="download-btn">Download Report (TXT)</button>
+        <button id="go-dashboard-btn"
+          style="padding: 12px 32px; background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border); border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s;">Go
+          to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./streaming-client-api.js"></script>
+  <script>
+    // Toggle Dev Overlay
+    document.getElementById('dev-trigger').onclick = () => document.getElementById('dev-overlay').classList.remove('hidden');
+    document.getElementById('close-dev').onclick = () => document.getElementById('dev-overlay').classList.add('hidden');
+  </script>
+</body>
+
+</html>

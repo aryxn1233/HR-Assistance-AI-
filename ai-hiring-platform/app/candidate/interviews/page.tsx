@@ -51,7 +51,9 @@ export default function CandidateInterviewsPage() {
                 alert("Interview started but could not get interview ID. Please refresh and check Interviews page.")
                 return
             }
-            window.location.href = `/candidate/interviews/${interviewId}`
+            // Redirect to the standalone D-ID interview project with sync context
+            const token = localStorage.getItem('token');
+            window.location.href = `http://localhost:3001?applicationId=${applicationId}&interviewId=${interviewId}&token=${token}`;
         } catch (error: any) {
             console.error("Failed to start interview", error)
             const msg = error?.response?.data?.message || "Failed to start interview. Please try again."
@@ -65,11 +67,11 @@ export default function CandidateInterviewsPage() {
     const upcomingInterviews = safeInterviews.filter(i => i.status === 'created' || i.status === 'in_progress')
     const pastInterviews = safeInterviews.filter(i => i.status === 'completed')
 
-    const rejectedStatuses = ['rejected', 'rejected_ai', 'rejected_post_interview']
+    const rejectedStatuses = ['rejected', 'rejected_ai', 'rejected_post_interview', 'selected', 'hold', 'completed']
     // Show interview opportunity for any active application that doesn't have an interview session yet
     const eligibleApplications = Array.isArray(applications)
         ? applications.filter(app =>
-            !rejectedStatuses.includes(app.status) &&
+            !rejectedStatuses.includes(app.status.toLowerCase()) &&
             !safeInterviews.find(i => i.applicationId === app.id)
         )
         : []
@@ -177,10 +179,10 @@ export default function CandidateInterviewsPage() {
                                     </CardContent>
                                     <CardFooter className="bg-muted/30 pt-4 pb-4">
                                         <Button asChild className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                                            <Link href={`/candidate/interviews/${interview.id}`}>
+                                            <a href={`http://localhost:3001?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${localStorage.getItem('token')}`}>
                                                 Join Interview Room
                                                 <ArrowRight className="ml-2 h-4 w-4 font-bold" />
-                                            </Link>
+                                            </a>
                                         </Button>
                                     </CardFooter>
                                 </Card>

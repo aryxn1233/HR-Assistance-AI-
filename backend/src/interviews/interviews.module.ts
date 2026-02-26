@@ -13,13 +13,15 @@ import { DIdModule } from '../did/did.module';
 
 import { Application } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
+import { InterviewQuestionModule } from './question-generation/interview-question.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Interview, InterviewQuestion, InterviewAnswer, InterviewReport, Application, Candidate]),
         AIModule,
         GeminiModule,
-        DIdModule
+        DIdModule,
+        InterviewQuestionModule
     ],
     controllers: [InterviewsController],
     providers: [InterviewsService, InterviewGateway],

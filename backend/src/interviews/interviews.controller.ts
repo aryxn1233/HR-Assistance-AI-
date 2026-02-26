@@ -20,7 +20,7 @@ export class InterviewsController {
     @UseGuards(AuthGuard('jwt'))
     @Get()
     findAll(@Request() req) {
-        return this.interviewsService.findAll(req.user.userId);
+        return this.interviewsService.findAll(req.user);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -31,9 +31,12 @@ export class InterviewsController {
 
     @UseGuards(AuthGuard('jwt'))
     @Post(':id/start')
-    startSession(@Param('id') id: string, @Request() req) {
-        require('fs').writeFileSync('request-log.txt', `start called id=${id} user=${JSON.stringify(req.user)}\n`);
-        return this.interviewsService.startSession(id);
+    startSession(
+        @Param('id') id: string,
+        @Body('streamId') streamId: string,
+        @Body('sessionId') sessionId: string
+    ) {
+        return this.interviewsService.startSession(id, streamId, sessionId);
     }
 
     @UseGuards(AuthGuard('jwt'))
@@ -43,8 +46,24 @@ export class InterviewsController {
     }
 
     @UseGuards(AuthGuard('jwt'))
+    @Post(':id/respeak')
+    respeak(@Param('id') id: string) {
+        return this.interviewsService.speakCurrentQuestion(id);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
     @Patch('application/:applicationId/submit-score')
-    submitScore(@Param('applicationId') applicationId: string, @Body('interviewScore') interviewScore: number) {
-        return this.interviewsService.submitInterviewScore(applicationId, interviewScore);
+    submitScore(
+        @Param('applicationId') applicationId: string,
+        @Body('interviewScore') interviewScore: number,
+        @Body('feedback') feedback: any
+    ) {
+        return this.interviewsService.submitInterviewScore(applicationId, interviewScore, feedback);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post(':id/finish')
+    finish(@Param('id') id: string) {
+        return this.interviewsService.finishSession(id);
     }
 }

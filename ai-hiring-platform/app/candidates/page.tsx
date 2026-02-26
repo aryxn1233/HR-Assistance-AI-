@@ -191,17 +191,17 @@ export default function CandidatesPage() {
                                     return (
                                         <TableRow key={candidate.id}>
                                             <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar>
+                                                <Link href={`/candidates/${candidate.id}`} className="flex items-center gap-3 group">
+                                                    <Avatar className="group-hover:ring-2 group-hover:ring-primary transition-all">
                                                         <AvatarFallback>{initials}</AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <Link href={`/candidates/${candidate.id}`} className="font-medium hover:text-primary transition-colors">
+                                                        <div className="font-medium group-hover:text-primary transition-colors">
                                                             {name}
-                                                        </Link>
+                                                        </div>
                                                         <div className="text-xs text-muted-foreground">{candidate.user?.email}</div>
                                                     </div>
-                                                </div>
+                                                </Link>
                                             </TableCell>
                                             <TableCell>{candidate.location}</TableCell>
                                             <TableCell>{candidate.experience} years</TableCell>

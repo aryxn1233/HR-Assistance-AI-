@@ -1,0 +1,1 @@
+start called id=c27351ea-2f49-4338-b4a5-a2ca14269b12 user={"userId":"ab6a688b-24c3-433b-a7b1-7d04be76d414","username":"maria@mail.com","role":"candidate"}

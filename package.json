@@ -3,10 +3,11 @@
     "version": "1.0.0",
     "description": "Unified entry point for AI Hiring Platform",
     "scripts": {
-        "start:db": "\"C:\\Program Files\\PostgreSQL\\18\\bin\\pg_ctl.exe\" -D \"C:\\Program Files\\PostgreSQL\\18\\data\" start",
+        "start:db": "C:/Progra~1/PostgreSQL/18/bin/pg_ctl.exe -D \"C:/Progra~1/PostgreSQL/18/data\" start",
         "start:backend": "cd backend && npm run start:dev",
         "start:frontend": "cd ai-hiring-platform && npm run dev",
-        "start": "npx concurrently --kill-others \"npm run start:db\" \"npm run start:backend\" \"npm run start:frontend\""
+        "start:interview": "cd d-id/d-id-live-streaming-main && npm run dev",
+        "start": "npx -y kill-port 3000 3001 3003 5432 && npx concurrently --kill-others \"npm run start:db\" \"npm run start:backend\" \"npm run start:frontend\" \"npm run start:interview\""
     },
     "dependencies": {
         "concurrently": "^9.1.2"

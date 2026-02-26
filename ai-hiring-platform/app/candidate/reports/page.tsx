@@ -66,11 +66,20 @@ export default function CandidateReportsPage() {
     )
 
     // Map backend feedback to radarData structure
-    const analysis = report.report?.detailedAnalysis || report.feedback;
+    // Map backend feedback to radarData structure
+    const analysis = report.application?.feedback || report.feedback || report.report?.detailedAnalysis;
+    const reportText = analysis?.text || report.report?.detailedAnalysis?.summary || "";
+
+    // Helper to extract sections from plain text report
+    const extractSection = (text: string, title: string) => {
+        const regex = new RegExp(`${title}:\\s*([\\s\\S]*?)(?=\\n\\n|\\nStrengths:|\\nAreas|$)`, 'i');
+        const match = text.match(regex);
+        return match ? match[1].trim() : "";
+    };
 
     const radarData = [
         { subject: 'Communication', A: (analysis?.communication_score * 10) || (analysis?.scores?.communication) || 80, fullMark: 100 },
-        { subject: 'Technical skills', A: (analysis?.technical_score * 10) || (analysis?.scores?.technical) || 70, fullMark: 100 },
+        { subject: 'Technical skills', A: (analysis?.technical_score * 10) || (analysis?.scores?.technical) || (report.score) || 70, fullMark: 100 },
         { subject: 'Problem Solving', A: (analysis?.problem_solving_score * 10) || (analysis?.scores?.problemSolving) || 65, fullMark: 100 },
         { subject: 'Behavioral', A: (analysis?.behavioral_score * 10) || (analysis?.scores?.behavioral) || 75, fullMark: 100 },
         { subject: 'Culture Fit', A: (analysis?.culture_fit_score * 10) || (analysis?.scores?.culture) || 85, fullMark: 100 },
@@ -141,7 +150,7 @@ export default function CandidateReportsPage() {
                             </h2>
                         </div>
                         <p className="text-primary-foreground/90 leading-relaxed text-lg italic">
-                            "{analysis?.detailed_feedback || analysis?.summary || "Your AI analysis is being processed. Check back soon for deep insights into your performance."}"
+                            "{analysis?.summary || extractSection(reportText, 'Feedback') || analysis?.detailed_feedback || "Your AI analysis is being processed. Check back soon for deep insights into your performance."}"
                         </p>
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                             <div>
@@ -164,15 +173,16 @@ export default function CandidateReportsPage() {
                         Key Strengths
                     </h3>
                     <ul className="space-y-4">
-                        {(analysis?.strengths || [
-                            "Articulate communication of design rationale.",
-                            "Strong grasp of technical constraints and feasibility.",
-                        ]).map((strength: string, i: number) => (
-                            <li key={i} className="flex gap-3 text-sm font-medium p-4 rounded-2xl bg-green-500/5 text-green-700 dark:text-green-400">
-                                <span className="flex-shrink-0 h-5 w-5 bg-green-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">✓</span>
-                                {strength}
-                            </li>
-                        ))}
+                        {(Array.isArray(analysis?.strengths) ? analysis.strengths :
+                            extractSection(reportText, 'Strengths').split('\n-').map(s => s.replace(/^- /, '').trim()).filter(Boolean) || [
+                                "Articulate communication of design rationale.",
+                                "Strong grasp of technical constraints and feasibility.",
+                            ]).map((strength: string, i: number) => (
+                                <li key={i} className="flex gap-3 text-sm font-medium p-4 rounded-2xl bg-green-500/5 text-green-700 dark:text-green-400">
+                                    <span className="flex-shrink-0 h-5 w-5 bg-green-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">✓</span>
+                                    {strength}
+                                </li>
+                            ))}
                     </ul>
                 </Card>
 
@@ -182,15 +192,16 @@ export default function CandidateReportsPage() {
                         Areas for Improvement
                     </h3>
                     <ul className="space-y-4">
-                        {(analysis?.weaknesses || [
-                            "Further deep dive into data-driven design metrics.",
-                            "Exploring more divergent ideation during whiteboarding.",
-                        ]).map((growth: string, i: number) => (
-                            <li key={i} className="flex gap-3 text-sm font-medium p-4 rounded-2xl bg-amber-500/5 text-amber-700 dark:text-amber-400">
-                                <span className="flex-shrink-0 h-5 w-5 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">!</span>
-                                {growth}
-                            </li>
-                        ))}
+                        {(Array.isArray(analysis?.weaknesses) ? analysis.weaknesses :
+                            extractSection(reportText, 'Areas for Improvement').split('\n-').map(s => s.replace(/^- /, '').trim()).filter(Boolean) || [
+                                "Further deep dive into data-driven design metrics.",
+                                "Exploring more divergent ideation during whiteboarding.",
+                            ]).map((growth: string, i: number) => (
+                                <li key={i} className="flex gap-3 text-sm font-medium p-4 rounded-2xl bg-amber-500/5 text-amber-700 dark:text-amber-400">
+                                    <span className="flex-shrink-0 h-5 w-5 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">!</span>
+                                    {growth}
+                                </li>
+                            ))}
                     </ul>
                 </Card>
             </div>

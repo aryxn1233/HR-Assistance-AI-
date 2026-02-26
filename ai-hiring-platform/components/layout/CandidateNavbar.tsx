@@ -84,7 +84,6 @@ export function CandidateNavbar() {
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-primary hover:ring-offset-2">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src="/avatars/candidate.png" alt={fullName} />
                                     <AvatarFallback>{initials}</AvatarFallback>
                                 </Avatar>
                             </Button>

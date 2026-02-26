@@ -80,12 +80,12 @@ export function RecentCandidates() {
                             return (
                                 <TableRow key={interview.id}>
                                     <TableCell className="font-medium">
-                                        <div className="flex items-center gap-2">
+                                        <Link href={`/candidates/${interview.candidate?.id}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                                             <Avatar className="h-8 w-8">
                                                 <AvatarFallback>{initials}</AvatarFallback>
                                             </Avatar>
                                             <span>{name}</span>
-                                        </div>
+                                        </Link>
                                     </TableCell>
                                     <TableCell>{interview.job?.title || 'Unknown Role'}</TableCell>
                                     <TableCell>

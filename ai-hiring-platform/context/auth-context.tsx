@@ -43,7 +43,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
-        router.push('/');
+
+        // Redirect based on role
+        if (userData.role === 'candidate') {
+            router.push('/candidate');
+        } else {
+            router.push('/');
+        }
     };
 
     const logout = () => {
