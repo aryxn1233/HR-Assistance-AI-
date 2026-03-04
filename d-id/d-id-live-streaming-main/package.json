@@ -8,6 +8,7 @@
     "ws": "^8.18.0"
   },
   "scripts": {
+    "start": "node app.js",
     "dev": "node app.js"
   }
 }

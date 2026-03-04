@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const RateLimit = require('express-rate-limit');
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 const app = express();
 
@@ -332,8 +332,8 @@ app.post('/generate-report', async (req, res) => {
 
 const server = http.createServer(app);
 
-server.listen(port, () =>
+server.listen(port, '0.0.0.0', () =>
   console.log(
-    `Server started on port localhost:${port}\nhttp://localhost:${port}\nhttp://localhost:${port}/ws-streaming`
+    `Server started on port ${port}\nListening at 0.0.0.0:${port}`
   )
 );
