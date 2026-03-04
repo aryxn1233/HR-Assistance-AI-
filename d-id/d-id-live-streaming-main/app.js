@@ -50,7 +50,7 @@ console.log(`Gemini initialized with ${apiKeys.length} API keys.`);
 app.use(express.json());
 
 const predefinedQuestions = [
-  "Could you start by telling me a bit about yourself and your background in software engineering?",
+  "Could you start by telling me a bit about yourself and your professional background ?",
   "What are some of the most interesting technical projects you've worked on recently?",
   "Can you describe a challenging technical problem you faced and how you went about solving it?",
   "What is your preferred tech stack, and why do you enjoy working with those specific technologies?",
