@@ -29,7 +29,10 @@ import { WebhooksModule } from './webhooks/webhooks.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // Auto-create tables (dev only)
+        synchronize: false,
+        ssl: configService.get<string>('DB_HOST')?.includes('render.com') || configService.get<string>('NODE_ENV') === 'production'
+          ? { rejectUnauthorized: false }
+          : false,
       }),
       inject: [ConfigService],
     }),
