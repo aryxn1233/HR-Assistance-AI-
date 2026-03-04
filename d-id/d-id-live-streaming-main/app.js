@@ -11,7 +11,8 @@ var limiter = RateLimit({
   max: 100,
 });
 app.use(limiter);
-app.use(cors({ origin: '*' })); // Open CORS for debugging context issues
+const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL, 'http://localhost:3000'] : '*';
+app.use(cors({ origin: allowedOrigins }));
 app.use((req, res, next) => {
   console.log(`[D-ID Proxy] Incoming: ${req.method} ${req.originalUrl}`);
   next();
@@ -117,7 +118,8 @@ app.post('/chat', async (req, res) => {
 
   try {
     const authHeader = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
-    const response = await fetch(`http://127.0.0.1:3003/interviews/${interviewId}/answer`, {
+    const targetUrl = `${process.env.BACKEND_URL || 'http://127.0.0.1:3003'}/interviews/${interviewId}/answer`;
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -159,7 +161,8 @@ app.post('/start-interview', async (req, res) => {
 
   try {
     const authHeader = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
-    const response = await fetch(`http://127.0.0.1:3003/interviews/${interviewId}/start`, {
+    const targetUrl = `${process.env.BACKEND_URL || 'http://127.0.0.1:3003'}/interviews/${interviewId}/start`;
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -300,7 +303,8 @@ app.post('/generate-report', async (req, res) => {
   if (applicationId && token) {
     try {
       console.log(`Syncing score ${finalReport.score} for application ${applicationId}...`);
-      const syncResponse = await fetch(`http://127.0.0.1:3003/interviews/application/${applicationId}/submit-score`, {
+      const targetUrl = `${process.env.BACKEND_URL || 'http://127.0.0.1:3003'}/interviews/application/${applicationId}/submit-score`;
+      const syncResponse = await fetch(targetUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
