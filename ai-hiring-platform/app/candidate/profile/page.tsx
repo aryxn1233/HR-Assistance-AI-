@@ -124,7 +124,7 @@ export default function CandidateProfilePage() {
     }
 
     const handleSave = async () => {
-        console.log("Saving profile, auth context:", { user, refreshUser })
+        console.log("Saving profile, auth context:", { user })
         setSaving(true)
         try {
             await api.post('/candidates/profile', formData)

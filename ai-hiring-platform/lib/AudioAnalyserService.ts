@@ -69,7 +69,7 @@ class AudioAnalyserService {
     getAmplitude(): number {
         if (!this.analyser || !this.dataArray) return 0;
 
-        this.analyser.getByteFrequencyData(this.dataArray);
+        (this.analyser as any).getByteFrequencyData(this.dataArray);
 
         let sum = 0;
         for (let i = 0; i < this.dataArray.length; i++) {
