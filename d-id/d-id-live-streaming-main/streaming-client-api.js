@@ -324,6 +324,16 @@ function initRecognition() {
     }
     isRecognizing = false;
     mainBtn.classList.remove('is-listening');
+    
+    // Attempt recovery on network/aborted errors after a brief pause
+    if (err.error === 'network' || err.error === 'aborted') {
+      console.log('STT: Attempting to recover from error in 2 seconds...');
+      setTimeout(() => {
+        if (!isAISpeaking && isInterviewStarted) {
+           autoStartListening();
+        }
+      }, 2000);
+    }
   };
 
   rec.onend = () => {
@@ -419,7 +429,8 @@ function onStreamEvent(message) {
       isAISpeaking = false;
       console.log('AI finished speaking, starting listener');
       mainBtn.innerText = 'Interview Live';
-      setTimeout(autoStartListening, 500);
+      // Give the browser audio pipeline 1.5s to settle before grabbing mic again
+      setTimeout(autoStartListening, 1500);
     }
   }
 }
