@@ -18,10 +18,13 @@ export const setAuthToken = (token: string | null) => {
     }
 };
 
-// Add a request interceptor to include the JWT token (legacy support)
+// Add a request interceptor to include the JWT token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        // Always read fresh from localStorage to survive page navigations
+        const clerkToken = typeof window !== 'undefined' ? localStorage.getItem('clerk_token') : null;
+        const legacyToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = clerkToken || legacyToken;
         if (token && !config.headers.Authorization) {
             config.headers.Authorization = `Bearer ${token}`;
         }

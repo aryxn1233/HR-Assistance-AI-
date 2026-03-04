@@ -32,12 +32,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 try {
                     const token = await getToken();
                     setAuthToken(token);
+                    // Persist Clerk token so it survives page navigations
+                    if (token) {
+                        localStorage.setItem('clerk_token', token);
+                    }
                     setIsSynced(true);
                 } catch (err) {
                     console.error("Failed to sync auth token", err);
-                    setIsSynced(true); // Proceed anyway to avoid permanent loader
+                    setIsSynced(true);
                 }
             } else {
+                // Clear Clerk token on sign out
+                localStorage.removeItem('clerk_token');
                 // Check legacy token
                 const legacyToken = localStorage.getItem('token');
                 if (legacyToken) {
