@@ -31,7 +31,7 @@ app.get('/api/credentials', (req, res) => {
   res.json({
     key: process.env.DID_API_KEY,
     url: "https://api.d-id.com",
-    service: "talks"
+    service: "clips"
   });
 });
 
