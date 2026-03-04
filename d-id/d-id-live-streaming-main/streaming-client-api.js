@@ -64,7 +64,8 @@ if (!context.interviewId || !context.token) {
 }
 
 const presenterInputByService = {
-  talks: { source_url: 'https://raw.githubusercontent.com/de-id/live-streaming-demo/main/docs/assets/alice.jpg' },
+  // Using a highly reliable, public domain Wikimedia image for the avatar face
+  talks: { source_url: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Portrait_of_a_man_in_a_blue_suit.jpg' },
   clips: { presenter_id: 'v2_public_alex@qcvo4gupoy', driver_id: 'e3nbserss8' },
 };
 
