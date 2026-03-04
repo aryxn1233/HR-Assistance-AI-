@@ -162,7 +162,7 @@ app.post('/start-interview', async (req, res) => {
 
   console.log('Proxying start for interview:', interviewId);
 
-  if (!interviewId || interviewId === 'undefined' || !authToken || authToken === 'undefined') {
+  if (!interviewId || interviewId === 'undefined' || !authToken || authToken === 'undefined' || authToken === 'null') {
     console.error('Missing interviewId or token in /start-interview request:', { interviewId, authToken: authToken ? 'PRESENT' : 'MISSING' });
     return res.status(400).json({ error: 'Missing session context (Interview ID or Token)' });
   }

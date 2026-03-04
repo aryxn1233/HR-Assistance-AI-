@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Video, Calendar, Clock, ArrowRight, Brain, Zap, Loader2 } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
+import { getFreshToken } from "@/lib/tokenManager"
 
 export default function CandidateInterviewsPage() {
     const [interviews, setInterviews] = useState<any[]>([])
@@ -52,7 +53,7 @@ export default function CandidateInterviewsPage() {
                 return
             }
             // Redirect to the standalone D-ID interview project with sync context
-            const token = localStorage.getItem('token');
+            const token = await getFreshToken();
             const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
             window.location.href = `${streamUrl}?applicationId=${applicationId}&interviewId=${interviewId}&token=${token}`;
         } catch (error: any) {
@@ -179,11 +180,14 @@ export default function CandidateInterviewsPage() {
                                         </div>
                                     </CardContent>
                                     <CardFooter className="bg-muted/30 pt-4 pb-4">
-                                        <Button asChild className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                                            <a href={`${process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001'}?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${localStorage.getItem('token')}`}>
+                                        <Button 
+                                            onClick={async () => {
+                                                const token = await getFreshToken() || '';
+                                                window.location.href = `${process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001'}?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${token}`;
+                                            }}
+                                            className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
                                                 Join Interview Room
                                                 <ArrowRight className="ml-2 h-4 w-4 font-bold" />
-                                            </a>
                                         </Button>
                                     </CardFooter>
                                 </Card>

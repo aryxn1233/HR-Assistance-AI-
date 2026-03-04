@@ -21,8 +21,8 @@ export default function InterviewRoomPage() {
         const redirectWithContext = async () => {
             const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
             try {
-                // Get token from localStorage
-                const token = localStorage.getItem('token');
+                // Get token using global token manager
+                const token = await getFreshToken();
 
                 // Fetch interview details to get applicationId
                 const response = await api.get(`/interviews/${interviewId}`);

@@ -22,9 +22,9 @@ import {
     Video,
     FileText,
     Loader2
-} from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
+import { getFreshToken } from "@/lib/tokenManager"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
@@ -80,7 +80,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             // Redirect to the standalone D-ID interview project with context
             const interviewId = data.question?.interviewId || data.id;
             const appId = data.applicationId || (candidate.applications?.[0]?.id);
-            const token = localStorage.getItem('token');
+            const token = await getFreshToken() || '';
 
             setTimeout(() => {
                 const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
