@@ -215,6 +215,12 @@ async function processChatMessage(message, isStart = false) {
       return;
     }
 
+    if (response.status === 401) {
+      addMessageToChat('interviewer', "Your session has expired for security reasons. Please refresh the page to continue the interview.");
+      mainBtn.innerText = 'Session Expired';
+      return;
+    }
+
     const data = await response.json();
     console.log('Cognitive Center response:', data);
 

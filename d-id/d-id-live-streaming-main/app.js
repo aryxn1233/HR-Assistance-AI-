@@ -139,6 +139,7 @@ app.post('/chat', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Backend /answer error [${response.status}]:`, errorText);
+      return res.status(response.status).json({ error: errorText });
     }
 
     const data = await response.json();
