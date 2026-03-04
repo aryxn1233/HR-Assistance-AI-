@@ -351,9 +351,10 @@ recognition = initRecognition();
 async function autoStartListening() {
   if (!recognition || isRecognizing || isAISpeaking) return;
   try {
-    const hasPerm = await checkMicPermission();
-    if (hasPerm) recognition.start();
-  } catch (e) { console.warn('Auto-listen fail', e); }
+    recognition.start();
+  } catch (e) { 
+    console.warn('Auto-listen fail (already started?)', e); 
+  }
 }
 
 async function checkMicPermission() {
