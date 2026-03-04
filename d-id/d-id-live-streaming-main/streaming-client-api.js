@@ -64,7 +64,7 @@ if (!context.interviewId || !context.token) {
 }
 
 const presenterInputByService = {
-  talks: { source_url: 's3://d-id-images-prod/google-oauth2|113431953721122947261/img__xooWJIsTGKb5ZlbrrGXu/indian-avatar.png' },
+  talks: { source_url: 'https://raw.githubusercontent.com/de-id/live-streaming-demo/main/docs/assets/alice.jpg' },
   clips: { presenter_id: 'v2_public_alex@qcvo4gupoy', driver_id: 'e3nbserss8' },
 };
 
