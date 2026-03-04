@@ -105,10 +105,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         // Specific dashboard protection
-        if (pathname.startsWith("/recruiter") && !currentIsRecruiter) {
+        // Recruiters should be able to view candidate pages, but candidates CANNOT view recruiter pages
+        if (pathname.startsWith("/recruiter") && currentIsCandidate) {
             router.replace("/candidate");
-        } else if (pathname.startsWith("/candidate") && !currentIsCandidate) {
-            router.replace("/recruiter");
+        }
+        // If a candidate tries to access a recruiter route or if someone without a role tries to access candidate route
+        else if (pathname.startsWith("/candidate") && !currentIsCandidate && !currentIsRecruiter) {
+            router.replace("/onboarding");
         }
     }, [isLoaded, currentIsSignedIn, pathname, currentIsCandidate, currentIsRecruiter, router]);
 
@@ -123,8 +126,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     // Determine if we should show the content
     const needsRedirect = currentIsSignedIn && (
         (pathname === "/") ||
-        (pathname.startsWith("/recruiter") && !currentIsRecruiter) ||
-        (pathname.startsWith("/candidate") && !currentIsCandidate)
+        (pathname.startsWith("/recruiter") && currentIsCandidate) ||
+        (pathname.startsWith("/candidate") && !currentIsCandidate && !currentIsRecruiter)
     );
 
     if (needsRedirect) {
@@ -145,11 +148,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     return (
         <SidebarProvider>
-            {currentIsCandidate ? <CandidateSidebar /> : <AppSidebar />}
+            {currentIsRecruiter ? <AppSidebar /> : currentIsCandidate ? <CandidateSidebar /> : <AppSidebar />}
             <SidebarInset>
                 <Navbar />
                 <main className="flex flex-1 flex-col gap-4 p-4">
-                    {currentIsCandidate ? (
+                    {/* Only use container for candidates or when recruiters view candidate paths */}
+                    {pathname.startsWith("/candidate") ? (
                         <div className="container py-2">
                             {children}
                         </div>
