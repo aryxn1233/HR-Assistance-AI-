@@ -31,7 +31,9 @@ export class WebhooksController {
         let evt: any;
 
         try {
-            evt = wh.verify(JSON.stringify(payload), {
+            // Use the raw body for accurate Svix signature verification
+            const rawBody = req.rawBody || Buffer.from(JSON.stringify(payload));
+            evt = wh.verify(rawBody, {
                 'svix-id': svixId,
                 'svix-timestamp': svixTimestamp,
                 'svix-signature': svixSignature,
