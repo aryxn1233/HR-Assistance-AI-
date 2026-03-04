@@ -9,11 +9,19 @@ import { CandidateSidebar } from "@/components/layout/CandidateSidebar";
 import { Navbar } from "@/components/layout/Navbar";
 import { Loader2 } from "lucide-react";
 import { setAuthToken } from "@/lib/api";
+import { setTokenGetter } from "@/lib/tokenManager";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isLoaded, isSignedIn, user } = useUser();
     const { getToken } = useAuth();
     const [isSynced, setIsSynced] = useState(false);
+
+    // Register the Clerk getToken function globally so api.ts interceptor can use it
+    useEffect(() => {
+        if (isSignedIn && getToken) {
+            setTokenGetter(getToken);
+        }
+    }, [isSignedIn, getToken]);
     const router = useRouter();
     const pathname = usePathname();
 

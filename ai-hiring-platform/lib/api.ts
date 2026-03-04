@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getFreshToken } from '@/lib/tokenManager';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3003';
 
@@ -9,7 +10,7 @@ const api = axios.create({
     },
 });
 
-// Helper to set the auth token for all subsequent requests
+// Helper to manually set the auth token (kept for legacy support)
 export const setAuthToken = (token: string | null) => {
     if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -18,14 +19,11 @@ export const setAuthToken = (token: string | null) => {
     }
 };
 
-// Add a request interceptor to include the JWT token
+// Request interceptor: always get a fresh Clerk token before every request
 api.interceptors.request.use(
-    (config) => {
-        // Always read fresh from localStorage to survive page navigations
-        const clerkToken = typeof window !== 'undefined' ? localStorage.getItem('clerk_token') : null;
-        const legacyToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        const token = clerkToken || legacyToken;
-        if (token && !config.headers.Authorization) {
+    async (config) => {
+        const token = await getFreshToken();
+        if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -33,21 +31,12 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle 401 errors
+// Response interceptor to handle 401 errors
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // With Clerk, we let the AuthGuard and Middleware handleauth state.
-            // Automatic redirects here can cause loops if backend/frontend tokens are out of sync.
             console.error("API 401 Error - Unauthorized");
-            /*
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
-            }
-            */
         }
         return Promise.reject(error);
     }
