@@ -8,7 +8,6 @@ import { verifyToken } from '@clerk/backend';
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
     private secretKey: string;
-    private authorizedParties: string[];
 
     constructor(
         private configService: ConfigService,
@@ -16,10 +15,6 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
     ) {
         super();
         this.secretKey = configService.get<string>('CLERK_SECRET_KEY') || '';
-        this.authorizedParties = [
-            'https://hr-assistance-ai.vercel.app',
-            'http://localhost:3000',
-        ];
     }
 
     async validate(req: any): Promise<any> {
@@ -31,24 +26,27 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         const token = authHeader.substring(7);
 
         try {
+            // Verify the Clerk JWT using the official SDK
             const payload = await verifyToken(token, {
                 secretKey: this.secretKey,
-                authorizedParties: this.authorizedParties,
+                // No authorizedParties restriction - let Clerk handle it
             });
+
+            console.log('Clerk token verified successfully for sub:', payload?.sub);
 
             if (!payload?.sub) {
                 throw new UnauthorizedException('Invalid token payload');
             }
 
-            // Sync the user to our database using userId from Clerk
+            // Sync or find the user in our database
             const user = await this.authService.syncClerkUser({
                 id: payload.sub,
-                email: '',
+                email: (payload as any).email || '',
                 email_addresses: [],
-                first_name: '',
-                last_name: '',
+                first_name: (payload as any).firstName || (payload as any).given_name || '',
+                last_name: (payload as any).lastName || (payload as any).family_name || '',
                 image_url: null,
-                public_metadata: (payload as any).publicMetadata || {},
+                public_metadata: (payload as any).publicMetadata || (payload as any).metadata || {},
             });
 
             if (!user) {
@@ -61,8 +59,11 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
                 role: user.role,
             };
         } catch (err) {
-            console.error('Clerk token verification failed:', err?.message || err);
-            throw new UnauthorizedException('Invalid or expired Clerk token');
+            // Log the actual Clerk error for debugging
+            const errMessage = err?.message || err?.toString() || 'Unknown error';
+            console.error('Clerk token verification failed:', errMessage);
+            console.error('CLERK_SECRET_KEY set:', !!this.secretKey);
+            throw new UnauthorizedException(`Token verification failed: ${errMessage}`);
         }
     }
 }
