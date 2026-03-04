@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:3000'; // Adjust port if needed
+const API_URL = 'https://hr-assistance-ai.vercel.app'; // Adjust port if needed
 // You need a valid JWT token here. For testing, we might need a login helper or bypass auth.
 // Or we can use the InterviewsService directly in a NestJS context test, but that's harder to script quickly.
 // Let's assume the user can run this if they provide a token, or I can try to login first if I know credentials.

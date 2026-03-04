@@ -557,14 +557,14 @@ endInterviewBtn.onclick = async () => {
       redirectLabel.innerText = `View full analysis in Reports in ${countdown}s...`;
       if (countdown <= 0) {
         clearInterval(timer);
-        window.location.href = 'http://localhost:3000/candidate/reports';
+        window.location.href = 'https://hr-assistance-ai.vercel.app/candidate/reports';
       }
       countdown--;
     }, 1000);
 
     goDashboardBtn.onclick = () => {
       clearInterval(timer);
-      window.location.href = 'http://localhost:3000/candidate/reports';
+      window.location.href = 'https://hr-assistance-ai.vercel.app/candidate/reports';
     };
 
   } catch (err) {
@@ -575,7 +575,7 @@ endInterviewBtn.onclick = async () => {
     `;
     goDashboardBtn.innerText = "Go to Dashboard";
     goDashboardBtn.onclick = () => {
-      window.location.href = 'http://localhost:3000/candidate';
+      window.location.href = 'https://hr-assistance-ai.vercel.app/candidate';
     };
   }
 };
