@@ -64,8 +64,8 @@ if (!context.interviewId || !context.token) {
 }
 
 const presenterInputByService = {
-  // Using a highly reliable, public domain Wikimedia image for the avatar face
-  talks: { source_url: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Portrait_of_a_man_in_a_blue_suit.jpg' },
+  // Custom user avatar image from postimages
+  talks: { source_url: 'https://i.postimg.cc/tg2VcVLN/indian-avatar.png' },
   clips: { presenter_id: 'v2_public_alex@qcvo4gupoy', driver_id: 'e3nbserss8' },
 };
 
