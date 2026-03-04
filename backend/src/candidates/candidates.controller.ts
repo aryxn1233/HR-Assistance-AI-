@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Request, Param, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { CandidatesService } from './candidates.service';
-import { AuthGuard } from '@nestjs/passport';
+import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -9,7 +9,7 @@ import { extname } from 'path';
 export class CandidatesController {
     constructor(private readonly candidatesService: CandidatesService) { }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('avatar-upload')
     @UseInterceptors(FileInterceptor('file', {
         storage: diskStorage({
@@ -31,7 +31,7 @@ export class CandidatesController {
         return { avatarUrl };
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('resume-upload')
     @UseInterceptors(FileInterceptor('file', {
         storage: diskStorage({
@@ -50,92 +50,92 @@ export class CandidatesController {
         return this.candidatesService.uploadResume(req.user.userId, file.path, fileUrl);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('profile')
     updateProfile(@Body() body: any, @Request() req) {
         return this.candidatesService.update(req.user.userId, body);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post()
     createCandidate(@Body() body: { firstName: string; lastName: string; email: string; resumeText: string }) {
         return this.candidatesService.createCandidateWithUser(body.firstName, body.lastName, body.email, body.resumeText);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get('profile')
     getProfile(@Request() req) {
         return this.candidatesService.findOneByUserId(req.user.userId);
     }
 
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get()
     getAllCandidates() {
         return this.candidatesService.findAll();
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('parse-resume')
     async parseResume(@Body() body: { resumeText: string }) {
         return this.candidatesService.parseResume(body.resumeText);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get('applications')
     getMyApplications(@Request() req) {
         return this.candidatesService.getMyApplications(req.user.userId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get('stats')
     getStats(@Request() req) {
         return this.candidatesService.getStats(req.user.userId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get('experiences')
     getExperiences(@Request() req) {
         return this.candidatesService.getExperiences(req.user.userId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('experiences')
     addExperience(@Body() body: any, @Request() req) {
         return this.candidatesService.addExperience(req.user.userId, body);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Patch('experiences/:id')
     updateExperience(@Param('id') id: string, @Body() body: any) {
         return this.candidatesService.updateExperience(id, body);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Delete('experiences/:id')
     removeExperience(@Param('id') id: string) {
         return this.candidatesService.removeExperience(id);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get(':id/details')
     getCandidateDetails(@Param('id') id: string) {
         return this.candidatesService.findOneWithDetails(id);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('applications/:id/status')
     updateApplicationStatus(@Param('id') id: string, @Body('status') status: string) {
         return this.candidatesService.updateApplicationStatus(id, status);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get(':id')
     getOne(@Param('id') id: string) {
         return this.candidatesService.findOne(id);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('apply/:jobId')
     apply(@Param('jobId') jobId: string, @Request() req) {
         return this.candidatesService.applyToJob(req.user.userId, jobId);

@@ -129,8 +129,8 @@
     #video-card {
       position: relative;
       width: 100%;
-      max-width: 600px;
-      aspect-ratio: 1 / 1;
+      max-width: 800px;
+      aspect-ratio: 16 / 9;
       border-radius: 24px;
       overflow: hidden;
       border: 4px solid var(--glass-border);
@@ -147,6 +147,12 @@
       object-fit: contain;
       transition: opacity 0.2s ease;
       background: #000;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    /* Remove Blur Overlay */
+    .video-overlay {
+      display: none;
     }
 
     /* Controls Panel in Sidebar bottom */
@@ -375,6 +381,7 @@
     <!-- Main Section (Left) -->
     <div class="view-section">
       <div id="video-card">
+        <div class="video-overlay"></div>
         <video id="idle-video-element" autoplay loop playsinline></video>
         <video id="stream-video-element" autoplay playsinline style="opacity: 0"></video>
       </div>
@@ -432,27 +439,69 @@
     </div>
   </div>
 
-  <!-- Report Modal -->
   <div id="report-modal" class="hidden">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 800px;">
       <div class="modal-close" id="close-report">&times;</div>
       <div class="report-header">
         <h2 style="margin:0; font-size: 1.5rem;">Interview Completed</h2>
         <div id="report-score">--</div>
-        <div style="color: var(--text-muted); font-size: 0.9rem;">Performance Score</div>
+        <div style="color: var(--text-muted); font-size: 0.9rem;">Overall Performance Score</div>
       </div>
-      <div class="report-body" id="report-text">
-        Analyzing your performance... please wait.
+
+      <div id="report-loading-spinner" class="report-body" style="text-align: center; padding: 40px;">
+        <div style="font-size: 1.2rem; margin-bottom: 10px;">Analyzing your performance...</div>
+        <div style="color: var(--text-muted);">Our AI is deep-diving into your technical answers and communication
+          style.</div>
       </div>
-      <div class="report-footer" style="gap: 15px;">
-        <button id="download-btn">Download Report (TXT)</button>
+
+      <div id="report-content-area" class="report-body hidden">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+          <div
+            style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border);">
+            <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px;">
+              Technical Depth</div>
+            <div id="tech-score-val" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">--/10</div>
+          </div>
+          <div
+            style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border);">
+            <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px;">
+              Communication</div>
+            <div id="comm-score-val" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">--/10</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 1rem; margin-bottom: 10px; color: #4ade80;">Key Strengths</h3>
+          <ul id="strengths-list"
+            style="padding-left: 20px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 1rem; margin-bottom: 10px; color: #fbbf24;">Areas for Improvement</h3>
+          <ul id="weaknesses-list"
+            style="padding-left: 20px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+          </ul>
+        </div>
+
+        <div>
+          <h3 style="font-size: 1rem; margin-bottom: 10px;">Executive Summary</h3>
+          <p id="summary-text"
+            style="color: var(--text-muted); font-size: 0.9rem; font-style: italic; line-height: 1.6;">
+          </p>
+        </div>
+      </div>
+
+      <div class="report-footer" style="gap: 15px; margin-top: 20px;">
+        <button id="download-btn" disabled>Download PDF Report</button>
         <button id="go-dashboard-btn"
           style="padding: 12px 32px; background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border); border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s;">Go
-          to Dashboard</button>
+          to Reports</button>
       </div>
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module" src="./streaming-client-api.js"></script>
   <script>
     // Toggle Dev Overlay

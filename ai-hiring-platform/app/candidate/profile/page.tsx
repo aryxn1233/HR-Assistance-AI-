@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/context/auth-context"
+import { useUser } from "@clerk/nextjs"
 import {
     User,
     Mail,
@@ -38,7 +38,7 @@ import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
 export default function CandidateProfilePage() {
-    const { user, refreshUser } = useAuth()
+    const { user, isLoaded } = useUser()
     const [profile, setProfile] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -129,15 +129,15 @@ export default function CandidateProfilePage() {
         try {
             await api.post('/candidates/profile', formData)
             await fetchStats() // Refresh stats after save
-            if (typeof refreshUser === 'function') {
-                refreshUser({
+
+            // Clerk user update (optional, but keep UI in sync)
+            if (user) {
+                await user.update({
                     firstName: formData.firstName,
                     lastName: formData.lastName,
-                    avatarUrl: formData.avatarUrl
-                })
-            } else {
-                console.warn("refreshUser is not available in AuthContext")
+                });
             }
+
             alert("Profile saved successfully!")
         } catch (error) {
             console.error("Failed to save profile", error)
@@ -161,9 +161,7 @@ export default function CandidateProfilePage() {
             })
             const newUrl = response.data.avatarUrl
             setFormData({ ...formData, avatarUrl: newUrl })
-            if (typeof refreshUser === 'function') {
-                refreshUser({ avatarUrl: newUrl })
-            }
+
             alert("Avatar uploaded successfully!")
         } catch (error) {
             console.error("Upload failed", error)
@@ -216,6 +214,12 @@ export default function CandidateProfilePage() {
     }
 
     const handleAddExperience = async () => {
+        // Validation
+        if (!experienceForm.employer.trim() || !experienceForm.role.trim() || !experienceForm.startDate) {
+            toast.error("Please fill in company, role, and start date");
+            return;
+        }
+
         setSaving(true)
         try {
             if (editingExpId) {

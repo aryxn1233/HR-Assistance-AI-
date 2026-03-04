@@ -12,6 +12,7 @@ import { AppService } from './app.service';
 
 import { GeminiModule } from './gemini/gemini.module';
 import { DIdModule } from './did/did.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { DIdModule } from './did/did.module';
     AnalyticsModule,
     GeminiModule,
     DIdModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

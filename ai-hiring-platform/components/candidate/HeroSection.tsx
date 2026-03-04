@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
-import { useAuth } from "@/context/auth-context"
+import { useUser } from "@clerk/nextjs"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { Video, ArrowRight, Zap } from "lucide-react"
 import Link from "next/link"
 
 export function HeroSection() {
-    const { user } = useAuth()
+    const { user } = useUser()
     const name = user?.firstName || "User"
     const [stats, setStats] = useState<any>(null)
 

@@ -11,7 +11,11 @@ var limiter = RateLimit({
   max: 100,
 });
 app.use(limiter);
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: '*' })); // Open CORS for debugging context issues
+app.use((req, res, next) => {
+  console.log(`[D-ID Proxy] Incoming: ${req.method} ${req.originalUrl}`);
+  next();
+});
 app.use('/', express.static(__dirname));
 
 app.get('/', function (req, res) {
@@ -102,24 +106,37 @@ async function generateWithRetry(prompt, retries = 3, delay = 2000) {
 app.post('/chat', async (req, res) => {
   const { message, interviewId, token, streamId, sessionId } = req.body;
   const authToken = token || req.headers.authorization;
+  console.log('Received /chat request body:', JSON.stringify(req.body));
 
   console.log('Proxying chat for interview:', interviewId);
 
+  if (!interviewId || interviewId === 'undefined' || !authToken || authToken === 'undefined') {
+    console.error('Missing interviewId or token in /chat request:', { interviewId, authToken: authToken ? 'PRESENT' : 'MISSING' });
+    return res.status(400).json({ error: 'Missing session context (Interview ID or Token)' });
+  }
+
   try {
-    const response = await fetch(`http://localhost:3003/interviews/${interviewId}/answer`, {
+    const authHeader = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
+    const response = await fetch(`http://127.0.0.1:3003/interviews/${interviewId}/answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`
+        'Authorization': authHeader
       },
       body: JSON.stringify({ answer: message }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Backend /answer error [${response.status}]:`, errorText);
+    }
+
     const data = await response.json();
+    console.log('Backend /answer response:', JSON.stringify(data).substring(0, 100));
     // Main backend returns { status, question }
     // streaming-client-api expects { text }
     res.json({
-      text: data.question?.questionText || data.text || "I see. Let's move to the next question.",
+      text: data.question?.questionText || data.text || "I'm having trouble retrieving the next question. Please check your connection.",
       ...data
     });
   } catch (err) {
@@ -131,22 +148,35 @@ app.post('/chat', async (req, res) => {
 app.post('/start-interview', async (req, res) => {
   const { interviewId, token, streamId, sessionId } = req.body;
   const authToken = token || req.headers.authorization;
+  console.log('Received /start-interview request body:', JSON.stringify(req.body));
 
   console.log('Proxying start for interview:', interviewId);
 
+  if (!interviewId || interviewId === 'undefined' || !authToken || authToken === 'undefined') {
+    console.error('Missing interviewId or token in /start-interview request:', { interviewId, authToken: authToken ? 'PRESENT' : 'MISSING' });
+    return res.status(400).json({ error: 'Missing session context (Interview ID or Token)' });
+  }
+
   try {
-    const response = await fetch(`http://localhost:3003/interviews/${interviewId}/start`, {
+    const authHeader = authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
+    const response = await fetch(`http://127.0.0.1:3003/interviews/${interviewId}/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`
+        'Authorization': authHeader
       },
       body: JSON.stringify({ streamId, sessionId }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Backend /start error [${response.status}]:`, errorText);
+    }
+
     const data = await response.json();
+    console.log('Backend /start response:', JSON.stringify(data).substring(0, 100));
     res.json({
-      text: data.question?.questionText || data.text || "Hello! Let's begin the interview.",
+      text: data.question?.questionText || data.text || "Hello! I'm your AI interviewer. I'm ready to begin when you are.",
       ...data
     });
   } catch (err) {
@@ -270,7 +300,7 @@ app.post('/generate-report', async (req, res) => {
   if (applicationId && token) {
     try {
       console.log(`Syncing score ${finalReport.score} for application ${applicationId}...`);
-      const syncResponse = await fetch(`http://localhost:3003/interviews/application/${applicationId}/submit-score`, {
+      const syncResponse = await fetch(`http://127.0.0.1:3003/interviews/application/${applicationId}/submit-score`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

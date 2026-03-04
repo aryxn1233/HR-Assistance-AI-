@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.0.1",
     "@d-id/client-sdk": "^1.1.50",
     "@heygen/streaming-avatar": "^2.1.0",
+    "@radix-ui/react-switch": "^1.2.6",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@types/three": "^0.182.0",

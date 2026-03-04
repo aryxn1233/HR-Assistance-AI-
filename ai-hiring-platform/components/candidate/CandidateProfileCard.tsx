@@ -24,8 +24,8 @@ export function CandidateProfileCard({ interview }: CandidateProfileCardProps) {
             <CardHeader className="relative pt-0">
                 <div className="-mt-16 mb-4 flex flex-col items-center sm:flex-row sm:items-end sm:space-x-4">
                     <Avatar className="h-32 w-32 border-4 border-white dark:border-zinc-950">
-                        <AvatarImage src="/avatars/02.png" alt={name} />
-                        <AvatarFallback>{initials}</AvatarFallback>
+                        <AvatarImage src={user.avatarUrl} alt={name} />
+                        <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="mt-4 text-center sm:mt-0 sm:text-left">
                         <h1 className="text-2xl font-bold">{name}</h1>

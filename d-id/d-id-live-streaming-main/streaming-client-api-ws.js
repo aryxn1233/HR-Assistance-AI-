@@ -39,7 +39,7 @@ const streamEventLabel = document.getElementById('stream-event-label');
 
 const presenterInputByService = {
   talks: {
-    source_url: 'https://create-images-results.d-id.com/DefaultPresenters/Emma_f/v1_image.jpeg',
+    source_url: 's3://d-id-images-prod/google-oauth2|113431953721122947261/img__xooWJIsTGKb5ZlbrrGXu/indian-avatar.png',
   },
   clips: {
     presenter_id: 'v2_public_alex@qcvo4gupoy',
@@ -421,13 +421,13 @@ function setStreamVideoElement(stream) {
   if (streamVideoElement.paused) {
     streamVideoElement
       .play()
-      .then((_) => {})
-      .catch((e) => {});
+      .then((_) => { })
+      .catch((e) => { });
   }
 }
 
 function playIdleVideo() {
-  idleVideoElement.src = DID_API.service == 'clips' ? 'alex_v2_idle.mp4' : 'emma_idle.mp4';
+  idleVideoElement.src = DID_API.service == 'clips' ? 'alex_v2_idle.mp4' : 'indian-idle.mp4';
 }
 
 function stopAllStreams() {

@@ -89,7 +89,7 @@ export default function DIdAvatar({
             await cleanup();
 
             const res = await api.post(`/did/session?interviewId=${interviewId}`, {
-                source_url: "https://create-images-results.d-id.com/DefaultPresenters/Emma_f/v1_image.jpeg"
+                source_url: "s3://d-id-images-prod/google-oauth2|113431953721122947261/img__xooWJIsTGKb5ZlbrrGXu/indian-avatar.png"
             });
 
             const { id: sId, session_id: sessId, offer, ice_servers: iceServers } = res.data;
@@ -224,7 +224,7 @@ export default function DIdAvatar({
     }, [isConnected]);
 
     return (
-        <div className="w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden relative border-4 border-white/5 shadow-[0_0_60px_rgba(37,99,235,0.1)] mx-auto">
+        <div className="w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden relative border-4 border-white/5 shadow-[0_0_60px_rgba(37,99,235,0.1)] mx-auto">
             {/* Connection Placeholder (Icon/Orb) */}
             {!isConnected && !loading && !error && (
                 <div className="flex flex-col items-center gap-6 z-30">
@@ -250,7 +250,7 @@ export default function DIdAvatar({
             {isConnected && (
                 <video
                     ref={idleVideoRef}
-                    src="/emma_idle.mp4"
+                    src="/indian-idle.mp4"
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isStreaming ? "opacity-0" : "opacity-100"}`}
                     autoPlay
                     loop

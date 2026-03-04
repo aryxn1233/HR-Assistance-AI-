@@ -348,20 +348,44 @@ export class CandidatesService {
         const candidate = await this.findOneByUserId(userId);
         if (!candidate) throw new NotFoundException('Candidate not found');
 
+        // Basic normalization
         const experience = new CandidateExperience();
         experience.employer = experienceDto.employer;
         experience.role = experienceDto.role;
-        experience.startDate = experienceDto.startDate;
-        experience.endDate = experienceDto.endDate;
-        experience.description = experienceDto.description;
-        experience.isCurrent = experienceDto.isCurrent;
+
+        // Handle dates: convert empty strings to null
+        experience.startDate = (experienceDto.startDate && experienceDto.startDate.trim() !== "")
+            ? new Date(experienceDto.startDate)
+            : null;
+
+        experience.endDate = (experienceDto.endDate && experienceDto.endDate.trim() !== "")
+            ? new Date(experienceDto.endDate)
+            : null;
+
+        experience.description = (experienceDto.description && experienceDto.description.trim() !== "")
+            ? experienceDto.description
+            : null;
+
+        experience.isCurrent = experienceDto.isCurrent || false;
         experience.candidateId = candidate.id;
+
+        // Validation
+        if (!experience.employer || !experience.role || !experience.startDate) {
+            throw new BadRequestException('Employer, role, and valid start date are required');
+        }
 
         return this.experienceRepository.save(experience);
     }
 
     async updateExperience(id: string, experienceDto: any): Promise<CandidateExperience> {
-        await this.experienceRepository.update(id, experienceDto);
+        // Normalize fields for update too
+        const updatePayload: any = { ...experienceDto };
+
+        if (updatePayload.startDate === "") updatePayload.startDate = null;
+        if (updatePayload.endDate === "") updatePayload.endDate = null;
+        if (updatePayload.description === "") updatePayload.description = null;
+
+        await this.experienceRepository.update(id, updatePayload);
         const updated = await this.experienceRepository.findOne({ where: { id } });
         if (!updated) throw new NotFoundException('Experience not found');
         return updated;

@@ -44,24 +44,26 @@ export class OpenAIService {
                     ],
                     model: 'gpt-4o-mini',
                 });
-                return completion.choices[0].message.content || 'AI Service Unavailable';
+                const content = completion.choices[0].message.content || 'AI Service Unavailable';
+                this.logger.debug(`AI Response: ${content}`);
+                return content;
             } catch (error: any) {
                 attempts++;
                 this.logger.error(`Error with OpenAI Key #${this.currentKeyIndex + 1}: ${error.message}`);
 
-                // If rate limit (429) or server error (5xx), switch key and retry
-                if (error.status === 429 || error.status >= 500) {
+                // If rate limit (429), server error (5xx), OR auth error (401/403), switch key and retry
+                if (error.status === 429 || error.status >= 500 || error.status === 401 || error.status === 403) {
                     this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
-                    this.logger.warn(`Switching to OpenAI API Key #${this.currentKeyIndex + 1} (Attempt ${attempts + 1}/${maxAttempts})`);
+                    this.logger.warn(`Switching to OpenAI API Key #${this.currentKeyIndex + 1} (Attempt ${attempts + 1}/${maxAttempts}) due to ${error.status}`);
                     continue;
                 }
 
-                // For other errors, just stop or handle specifically
-                break;
+                // For other errors, rethrow to be caught by specific handlers
+                throw error;
             }
         }
 
-        return 'AI Service Unavailable after multiple retries';
+        throw new Error('AI Service Unavailable after multiple retries across all keys');
     }
 
     async parseResume(resumeText: string): Promise<any> {
@@ -86,8 +88,9 @@ export class OpenAIService {
     async evaluateResume(resumeText: string, jobDescription: string): Promise<any> {
         const systemPrompt = `You are an expert technical recruiter.
 Compare the following resume with the job description.
-Score strictly from 0 to 100.
-Be strict.
+Score from 0 to 100 based on fit.
+Be objective but fair. For students or early-career candidates, look for relevant coursework, projects, and potential.
+If the resume is extremely brief (e.g., only a name), provide low but realistic scores if any keywords match.
 Return JSON only in this format:
 {
   "skillMatchScore": number,
@@ -105,14 +108,7 @@ Return JSON only in this format:
             return JSON.parse(cleanJson);
         } catch (e) {
             this.logger.error('Failed to parse resume evaluation response', e);
-            return {
-                skillMatchScore: 0,
-                experienceMatch: 0,
-                relevanceScore: 0,
-                overallScore: 0,
-                strengths: [],
-                weaknesses: ['Evaluation failed due to parsing error'],
-            };
+            throw new Error('Failed to parse AI response for resume evaluation');
         }
     }
 

@@ -22,4 +22,10 @@ export class AuthController {
     getProfile(@Request() req) {
         return req.user;
     }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post('change-password')
+    async changePassword(@Request() req, @Body() body) {
+        return this.authService.changePassword(req.user.userId, body);
+    }
 }

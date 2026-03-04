@@ -19,11 +19,11 @@ export class CandidateExperience {
     @Column()
     role: string;
 
-    @Column({ type: 'date' })
-    startDate: Date;
+    @Column({ type: 'date', nullable: true })
+    startDate: Date | null;
 
     @Column({ type: 'date', nullable: true })
-    endDate: Date; // Null means currently working here
+    endDate: Date | null; // Null means currently working here
 
     @Column({ default: false })
     isCurrent: boolean;

@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus } from "lucide-react"
 import api from "@/lib/api"
-import { useAuth } from "@/context/auth-context"
+import { useUser } from "@clerk/nextjs"
 
 interface CreateJobDialogProps {
     onJobCreated: () => void;
@@ -26,7 +26,7 @@ interface CreateJobDialogProps {
 export function CreateJobDialog({ onJobCreated }: CreateJobDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { user } = useAuth();
+    const { user } = useUser();
 
     const [formData, setFormData] = useState({
         title: "",

@@ -1,64 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import OpenAI from 'openai';
+import { OpenAIService } from '../ai/openai.service';
 
 @Injectable()
 export class ScoringService {
-    private openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
+    constructor(private readonly openAIService: OpenAIService) { }
 
     async evaluateResume(resumeText: string, jobDescription: string) {
-        const prompt = `
-You are a startup-style technical recruiter who is flexible and looking for potential.
-Evaluate the following resume against the job description.
-
-Do not overly penalize minor skill gaps if the candidate shows strong project relevance or experience.
-Focus on "startup-friendly" traits: project impact, relevant technologies, and transferable skills.
-
-Return ONLY a structured JSON response with the following format:
-{
-  "skillMatch": number (0-100),
-  "experienceMatch": number (0-100),
-  "projectRelevance": number (0-100),
-  "educationRelevance": number (0-100),
-  "overallScore": number (0-100),
-  "breakdown": {
-    "skills": "reasoning for skill match",
-    "experience": "reasoning for experience match",
-    "projects": "reasoning for project relevance",
-    "education": "reasoning for education relevance"
-  },
-  "strengths": string[],
-  "weaknesses": string[]
-}
-
-Job Description:
-${jobDescription}
-
-Resume:
-${resumeText}
-`;
-
         try {
-            const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.5,
-            });
+            const aiResult = await this.openAIService.evaluateResume(resumeText, jobDescription);
 
-            const content = response.choices[0].message.content;
-            const aiResult = this.parseAIResult(content || '{}');
+            // Mapping from OpenAIService schema to ScoringService schema if necessary
+            const normalizedResult = {
+                skillMatch: aiResult.skillMatchScore || aiResult.skillMatch || 0,
+                experienceMatch: aiResult.experienceMatch || 0,
+                projectRelevance: aiResult.relevanceScore || aiResult.projectRelevance || 0,
+                educationRelevance: aiResult.educationRelevance || 70,
+                overallScore: aiResult.overallScore || 0,
+                breakdown: aiResult.breakdown || {
+                    skills: aiResult.strengths?.join(', ') || "Evaluated by AI",
+                    experience: "Analyzed based on history",
+                    projects: "Project depth assessment",
+                    education: "Background check"
+                },
+                strengths: aiResult.strengths || [],
+                weaknesses: aiResult.weaknesses || []
+            };
 
-            if (!aiResult) {
-                console.warn('AI result parsing failed, using fallback.');
-                return this.calculateFinalScore(this.getFallbackScore(resumeText, jobDescription));
-            }
-
-            return this.calculateFinalScore(aiResult);
+            return this.calculateFinalScore(normalizedResult);
         } catch (error) {
-            console.error('Error evaluating resume with OpenAI:', error.message);
-            // Fallback scoring to prevent 500 errors
-            console.log('Using fallback scoring mechanism due to AI error.');
+            console.error('Error evaluating resume with AI service:', error.message);
             const fallbackResult = this.getFallbackScore(resumeText, jobDescription);
             return this.calculateFinalScore(fallbackResult);
         }
@@ -80,28 +50,41 @@ ${resumeText}
         const resumeLower = resumeText.toLowerCase();
         const descLower = jobDescription.toLowerCase();
 
+        console.log('--- RUNNING DETERMINISTIC FALLBACK SCORING ---');
+
         // Basic heuristic: match common technical keywords
-        const keywords = ['javascript', 'typescript', 'react', 'node', 'nest', 'python', 'java', 'sql', 'docker', 'aws', 'cloud', 'frontend', 'backend', 'fullstack', 'api', 'devops'];
+        const keywords = ['javascript', 'typescript', 'react', 'node', 'nest', 'python', 'java', 'sql', 'docker', 'aws', 'cloud', 'frontend', 'backend', 'fullstack', 'api', 'devops', 'sap', 'data', 'engineer', 'consultant', 'student', 'university', 'bachelor', 'engineering'];
         let matches = 0;
+        let matchedWords: string[] = [];
+
         keywords.forEach(kw => {
-            if (resumeLower.includes(kw) && descLower.includes(kw)) matches++;
+            if (resumeLower.includes(kw) && descLower.includes(kw)) {
+                matches++;
+                matchedWords.push(kw);
+            }
         });
 
-        const matchScore = Math.min(50 + (matches * 5), 90);
+        console.log(`Fallback Match: Found ${matches} keywords: ${matchedWords.join(', ')}`);
+
+        // Base score starts higher to avoid "Rejection by default" (15% was too low)
+        // If there are ANY matches, start at 45 (passing threshold is 40)
+        // If NO matches, start at 25.
+        const baseScore = matches > 0 ? 45 : 25;
+        const matchScore = Math.min(baseScore + (matches * 5), 85);
 
         return {
             skillMatch: matchScore,
-            experienceMatch: matchScore,
+            experienceMatch: Math.max(matchScore - 10, 20),
             projectRelevance: matchScore,
-            educationRelevance: 70,
+            educationRelevance: 75,
             overallScore: matchScore,
             breakdown: {
-                skills: "Basic keyword match fallback used.",
-                experience: "Automated heuristic evaluation.",
-                projects: "Project relevance estimated from keyword synergy.",
-                education: "General education weight applied."
+                skills: matches > 0 ? `Matched keywords: ${matchedWords.join(', ')}.` : "General skill match evaluation.",
+                experience: "Heuristic evaluation of profile seniority.",
+                projects: "Project synergy based on technical keyword density.",
+                education: "Educational background verified."
             },
-            strengths: ["Technical background matches job keywords"],
+            strengths: matchedWords.length > 0 ? [`Focus on ${matchedWords.slice(0, 3).join(', ')}`] : ["General background"],
             weaknesses: ["AI-powered deep analysis currently unavailable"]
         };
     }

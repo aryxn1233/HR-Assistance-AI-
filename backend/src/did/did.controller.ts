@@ -1,10 +1,10 @@
 import { Controller, Post, Body, Param, Delete, Query, UseGuards, Request, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { DIdService } from './did.service';
 import { DIdSessionManager } from './did-session.manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Application } from '../candidates/application.entity';
+import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 
 @Controller('did')
 export class DIdController {
@@ -15,7 +15,7 @@ export class DIdController {
         private applicationsRepository: Repository<Application>,
     ) { }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('session')
     async createSession(
         @Body('source_url') sourceUrl: string,
@@ -47,7 +47,7 @@ export class DIdController {
         }
 
         // Default source URL if none provided (using the one from the working demo)
-        const url = sourceUrl || 'https://create-images-results.d-id.com/DefaultPresenters/Emma_f/v1_image.jpeg';
+        const url = sourceUrl || "s3://d-id-images-prod/google-oauth2|113431953721122947261/img__xooWJIsTGKb5ZlbrrGXu/indian-avatar.png";
 
         const session = await this.didService.createSession(url);
 
@@ -61,7 +61,7 @@ export class DIdController {
         return session;
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('session/:streamId/sdp')
     async startStream(
         @Param('streamId') streamId: string,
@@ -71,7 +71,7 @@ export class DIdController {
         return this.didService.startStream(streamId, sessionId, answer);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('session/:streamId/ice')
     async submitIceCandidate(
         @Param('streamId') streamId: string,
@@ -81,7 +81,7 @@ export class DIdController {
         return this.didService.submitIceCandidate(streamId, sessionId, candidate);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Delete('session/:streamId')
     async closeSession(
         @Param('streamId') streamId: string,

@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google"; // Use Inter via next/font
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/context/auth-context";
-import { AuthGuard } from "@/components/AuthGuard";
-
-
+import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
+import { AuthGuard } from "@/components/AuthGuard";
+
 export const metadata: Metadata = {
-  title: "AI Hiring Platform",
-  description: "Automate your hiring process with AI",
+  title: "HireMe - AI Recruitment Platform",
+  description: "Modern AI-powered technical recruitment and interview platform",
 };
 
 export default function RootLayout({
@@ -31,12 +30,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
+          <ClerkProvider>
             <AuthGuard>
               {children}
             </AuthGuard>
             <Toaster richColors closeButton position="top-right" />
-          </AuthProvider>
+          </ClerkProvider>
         </ThemeProvider>
       </body>
     </html>

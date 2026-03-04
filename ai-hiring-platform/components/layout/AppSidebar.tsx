@@ -27,14 +27,15 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuth } from "@/context/auth-context"
+import { useUser } from "@clerk/nextjs"
+import Link from "next/link"
 
 
 // Menu items.
 const items = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/recruiter",
     icon: LayoutDashboard,
   },
   {
@@ -65,10 +66,16 @@ const items = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
-  const fullName = user ? `${user.firstName} ${user.lastName}` : "Sarah Connor";
-  const role = user?.role || "Recruiter";
-  const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "HR";
+  const { user: clerkUser } = useUser();
+  const fullName = clerkUser?.fullName || "Sarah Connor";
+  const role = clerkUser?.publicMetadata?.role as string || "Recruiter";
+  const initials = clerkUser?.firstName && clerkUser?.lastName
+    ? `${clerkUser.firstName[0]}${clerkUser.lastName[0]}`
+    : clerkUser?.firstName
+      ? clerkUser.firstName[0]
+      : clerkUser?.primaryEmailAddress?.emailAddress
+        ? clerkUser.primaryEmailAddress.emailAddress[0].toUpperCase()
+        : "HR";
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -78,7 +85,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             AI
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-            <span className="font-semibold">HireX AI</span>
+            <span className="font-semibold">HireMe</span>
             <span className="text-muted-foreground text-xs">Hiring Automation</span>
           </div>
         </div>
@@ -91,10 +98,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -107,6 +114,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
               <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src={clerkUser?.imageUrl} alt={fullName} />
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus } from "lucide-react"
 import api from "@/lib/api"
-import { useAuth } from "@/context/auth-context"
+import { useUser } from "@clerk/nextjs"
 
 interface AddCandidateDialogProps {
     onCandidateAdded: () => void;
@@ -25,7 +25,7 @@ interface AddCandidateDialogProps {
 export function AddCandidateDialog({ onCandidateAdded }: AddCandidateDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { user } = useAuth();
+    const { user } = useUser();
 
     const [formData, setFormData] = useState({
         firstName: "",

@@ -126,10 +126,10 @@ export default function MyApplicationsPage() {
                                         <Badge
                                             variant="outline"
                                             className={`rounded-full px-3 py-0.5 font-semibold text-[10px] uppercase tracking-wider ${app.status === "Interviewing" ? "bg-purple-500/10 text-purple-600 border-purple-500/20" :
-                                                    app.status === "Screening" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
-                                                        app.status === "Rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                                                            app.status === "Shortlisted" ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                                                                "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                                app.status === "Screening" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
+                                                    app.status === "Rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                                                        app.status === "Shortlisted" ? "bg-green-500/10 text-green-600 border-green-500/20" :
+                                                            "bg-amber-500/10 text-amber-600 border-amber-500/20"
                                                 }`}
                                         >
                                             {app.status}
@@ -139,11 +139,11 @@ export default function MyApplicationsPage() {
                                         <div className="flex items-center gap-2">
                                             <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
                                                 <div
-                                                    className={`h-full rounded-full ${app.aiScore >= 80 ? "bg-green-500" : app.aiScore >= 70 ? "bg-amber-500" : "bg-destructive"}`}
-                                                    style={{ width: `${app.aiScore}%` }}
+                                                    className={`h-full rounded-full ${app.resumeScore >= 80 ? "bg-green-500" : app.resumeScore >= 70 ? "bg-amber-500" : "bg-destructive"}`}
+                                                    style={{ width: `${app.resumeScore}%` }}
                                                 />
                                             </div>
-                                            <span className="text-sm font-bold">{app.aiScore}</span>
+                                            <span className="text-sm font-bold">{app.resumeScore}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right pr-6">

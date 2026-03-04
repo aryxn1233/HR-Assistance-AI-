@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request } from '@nestjs/common';
 import { InterviewsService } from './interviews.service';
-import { AuthGuard } from '@nestjs/passport';
+import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 
 @Controller('interviews')
 export class InterviewsController {
     constructor(private readonly interviewsService: InterviewsService) { }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post()
     create(@Body() body: any) {
         return this.interviewsService.create(body);
@@ -17,19 +17,19 @@ export class InterviewsController {
         return this.interviewsService.findOne(id);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Get()
     findAll(@Request() req) {
         return this.interviewsService.findAll(req.user);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post('start-with-app/:applicationId')
     startByApp(@Param('applicationId') applicationId: string, @Request() req) {
         return this.interviewsService.startInterviewByApplication(applicationId, req.user.userId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post(':id/start')
     startSession(
         @Param('id') id: string,
@@ -39,19 +39,19 @@ export class InterviewsController {
         return this.interviewsService.startSession(id, streamId, sessionId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post(':id/answer')
     submitAnswer(@Param('id') id: string, @Body('answer') answer: string) {
         return this.interviewsService.submitAnswer(id, answer);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post(':id/respeak')
     respeak(@Param('id') id: string) {
         return this.interviewsService.speakCurrentQuestion(id);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Patch('application/:applicationId/submit-score')
     submitScore(
         @Param('applicationId') applicationId: string,
@@ -61,7 +61,7 @@ export class InterviewsController {
         return this.interviewsService.submitInterviewScore(applicationId, interviewScore, feedback);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(CombinedAuthGuard)
     @Post(':id/finish')
     finish(@Param('id') id: string) {
         return this.interviewsService.finishSession(id);

@@ -18,9 +18,30 @@ export default function InterviewRoomPage() {
     const interviewId = params.id as string;
 
     useEffect(() => {
-        // Redirect all traffic to the new optimized standalone D-ID project
-        window.location.href = "http://localhost:3001";
-    }, []);
+        const performRedirect = async () => {
+            const token = localStorage.getItem('token');
+            if (interviewId && token) {
+                try {
+                    const response = await api.get(`/interviews/${interviewId}`);
+                    const candidateInterview = response.data;
+                    const appId = candidateInterview.applicationId;
+
+                    // Construct URL explicitly with trailing slash to avoid Express redirects
+                    const finalUrl = `http://localhost:3001/?applicationId=${encodeURIComponent(appId || '')}&interviewId=${encodeURIComponent(interviewId)}&token=${encodeURIComponent(token)}`;
+
+                    console.log("NAVIGATING TO INTERVIEW ROOM (PORT 3001):", finalUrl);
+                    window.location.href = finalUrl;
+                } catch (err) {
+                    console.error("Failed to fetch interview details for redirect", err);
+                    const finalUrl = `http://localhost:3001/?interviewId=${encodeURIComponent(interviewId)}&token=${encodeURIComponent(token)}`;
+                    console.log("FALLBACK NAVIGATING TO INTERVIEW ROOM:", finalUrl);
+                    window.location.href = finalUrl;
+                }
+            }
+        };
+
+        performRedirect();
+    }, [interviewId]);
 
     const [interview, setInterview] = useState<any>(null);
     const [currentQuestion, setCurrentQuestion] = useState<any>(null);

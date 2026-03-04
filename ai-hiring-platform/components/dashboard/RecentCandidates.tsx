@@ -23,6 +23,7 @@ interface Interview {
         user: {
             firstName: string;
             lastName: string;
+            avatarUrl?: string;
         };
     };
     job: {
@@ -82,6 +83,7 @@ export function RecentCandidates() {
                                     <TableCell className="font-medium">
                                         <Link href={`/candidates/${interview.candidate?.id}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                                             <Avatar className="h-8 w-8">
+                                                <AvatarImage src={interview.candidate?.user?.avatarUrl} alt={name} />
                                                 <AvatarFallback>{initials}</AvatarFallback>
                                             </Avatar>
                                             <span>{name}</span>

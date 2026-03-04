@@ -46,22 +46,34 @@ let isAISpeaking = false; // Track if AI is currently talking
 let conversationHistory = []; // Track interview flow for the report
 
 // Capture context from URL for dashboard sync
+console.log('--- URL DEBUGGING ---');
+console.log('Full window.location.href:', window.location.href);
+console.log('window.location.search:', window.location.search);
+console.log('window.location.pathname:', window.location.pathname);
+
 const urlParams = new URLSearchParams(window.location.search);
 const context = {
   applicationId: urlParams.get('applicationId'),
   interviewId: urlParams.get('interviewId'),
   token: urlParams.get('token')
 };
-console.log('Session Context:', context);
+console.log('Extracted context:', context);
+if (!context.interviewId || !context.token) {
+  console.error('CRITICAL: Missing Interview Context (ID or Token) in URL parameters!');
+  addMessageToChat('interviewer', "CRITICAL ERROR: No session context found in URL. Please start the interview from the Dashboard.");
+}
 
 const presenterInputByService = {
-  talks: { source_url: 'https://create-images-results.d-id.com/DefaultPresenters/Emma_f/v1_image.jpeg' },
+  talks: { source_url: 's3://d-id-images-prod/google-oauth2|113431953721122947261/img__xooWJIsTGKb5ZlbrrGXu/indian-avatar.png' },
   clips: { presenter_id: 'v2_public_alex@qcvo4gupoy', driver_id: 'e3nbserss8' },
 };
 
 // --- Connection Logic ---
 async function connect() {
   if (peerConnection && peerConnection.connectionState === 'connected') return;
+
+  // Immediately start playing idle video to avoid lag perception
+  playIdleVideo();
 
   sessionStatusLabel.innerText = 'Connecting...';
   mainBtn.innerText = 'Initializing...';
@@ -80,6 +92,12 @@ async function connect() {
       mainBtn.disabled = false;
       mainBtn.innerText = 'Insufficient Credits';
       return;
+    }
+
+    if (!sessionResponse.ok) {
+      const errorText = await sessionResponse.text();
+      console.error('D-ID Stream Creation Error:', sessionResponse.status, errorText);
+      throw new Error(`D-ID Stream Creation Error: ${sessionResponse.status} ${errorText}`);
     }
 
     const { id: newStreamId, offer, ice_servers: iceServers, session_id: newSessionId } = await sessionResponse.json();
@@ -112,15 +130,33 @@ async function connect() {
 // --- Interview & Interaction Logic ---
 async function startStreamWithScript(script) {
   if ((peerConnection?.signalingState === 'stable' || peerConnection?.iceConnectionState === 'connected') && isStreamReady) {
+    // Payload adjustment to avoid 'llm' error for standard talks
+    const payload = {
+      script,
+      session_id: sessionId
+    };
+
+    if (DID_API.service === 'talks') {
+      payload.config = { stitch: true };
+    }
+
+    if (DID_API.service === 'clips') {
+      payload.background = { color: '#FFFFFF' };
+    }
+
+    console.log('D-ID: Starting speech injection...', payload);
+
     const response = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams/${streamId}`, {
       method: 'POST',
       headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ script, config: { stitch: true }, session_id: sessionId, ...(DID_API.service === 'clips' && { background: { color: '#FFFFFF' } }) }),
+      body: JSON.stringify(payload),
     });
 
-    if (response.status === 402) {
-      addMessageToChat('interviewer', "I've run out of voice credits! Please refill your D-ID account to keep talking.");
-      return response;
+    if (response.ok) {
+      console.log('D-ID: Speech injection successful');
+    } else {
+      const errorText = await response.text();
+      console.error('D-ID Speaking Fetch Error:', response.status, errorText);
     }
 
     return response;
@@ -179,16 +215,28 @@ async function processChatMessage(message, isStart = false) {
     }
 
     const data = await response.json();
-    addMessageToChat('interviewer', data.text);
+    console.log('Cognitive Center response:', data);
+
+    const responseText = data.text || data.question?.questionText;
+    if (!responseText) {
+      console.warn('No response text received from cognitive center.');
+      addMessageToChat('interviewer', "I'm processing that... but I'm having trouble phrasing my response. Could you try again?");
+      mainBtn.innerText = 'Interview Live';
+      return;
+    }
+
+    addMessageToChat('interviewer', responseText);
 
     // Explicitly ensure video is unmuted before starting stream
     streamVideoElement.muted = false;
 
+    console.log('D-ID: Triggering startStreamWithScript for response text...');
     const streamRes = await startStreamWithScript({
       type: 'text',
       provider: { type: 'microsoft', voice_id: 'en-US-AndrewNeural' },
-      input: data.text
+      input: responseText
     });
+    console.log('D-ID: startStreamWithScript returned status:', streamRes?.status);
 
     if (streamRes && streamRes.status >= 400) {
       const errDetails = await streamRes.json().catch(() => ({}));
@@ -392,17 +440,14 @@ endInterviewBtn.onclick = async () => {
   endInterviewBtn.classList.add('hidden');
   userInputArea.classList.add('hidden');
 
-  // Explicit completion message
-  addMessageToChat('interviewer', "Thank you. The interview is now complete. I am generating your evaluation report, please wait a moment...");
-
   // Show Loading Modal
   reportModal.classList.remove('hidden');
-  reportText.innerText = "Analyzing your performance... please wait.";
+  document.getElementById('report-loading-spinner').classList.remove('hidden');
+  document.getElementById('report-content-area').classList.add('hidden');
   reportScore.innerText = "--";
 
   try {
-    // Call the MAIN backend to finish the interview and generate the HIGHER QUALITY report
-    const response = await fetch(`http://localhost:3003/interviews/${context.interviewId}/finish`, {
+    const response = await fetch(`http://127.0.0.1:3003/interviews/${context.interviewId}/finish`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -411,57 +456,124 @@ endInterviewBtn.onclick = async () => {
     });
 
     const data = await response.json();
-
-    // Use the richer response from the main backend
     const report = data.report || data;
     const analysis = report.detailedAnalysis || report;
 
-    // Format the display text for the modal
-    let displayHtml = `
-      <div style="text-align: left; padding: 10px;">
-        <p><strong>Status:</strong> ${report.recommendation || 'Completed'}</p>
-        <p><strong>Joining Probability:</strong> ${report.detailedAnalysis?.joining_probability_percent || '--'}%</p>
-        <p><strong>Decision:</strong> ${report.detailedAnalysis?.fit_for_role || 'Reviewed'}</p>
-        <hr style="opacity: 0.2; margin: 15px 0;" />
-        <p><strong>Detailed Feedback:</strong></p>
-        <p style="font-style: italic; opacity: 0.8;">${report.detailedAnalysis?.summary || report.text || 'Analysis pending...'}</p>
-      </div>
-    `;
+    // Update UI with rich data
+    document.getElementById('report-loading-spinner').classList.add('hidden');
+    document.getElementById('report-content-area').classList.remove('hidden');
 
-    reportText.innerHTML = displayHtml;
     reportScore.innerText = report.overallScore || report.score || "70";
+    document.getElementById('tech-score-val').innerText = `${analysis.technical_score || 0}/10`;
+    document.getElementById('comm-score-val').innerText = `${analysis.communication_score || 0}/10`;
+
+    // Summary
+    document.getElementById('summary-text').innerText = analysis.summary || report.text || "Interview successfully analyzed.";
+
+    // Strengths
+    const strengthsList = document.getElementById('strengths-list');
+    strengthsList.innerHTML = '';
+    (analysis.strengths || []).forEach(s => {
+      const li = document.createElement('li');
+      li.innerText = s;
+      strengthsList.appendChild(li);
+    });
+
+    // Weaknesses
+    const weaknessesList = document.getElementById('weaknesses-list');
+    weaknessesList.innerHTML = '';
+    (analysis.weaknesses || analysis.areas_for_improvement || []).forEach(w => {
+      const li = document.createElement('li');
+      li.innerText = w;
+      weaknessesList.appendChild(li);
+    });
+
+    // Enable PDF Download
+    downloadBtn.disabled = false;
+    downloadBtn.onclick = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Style PDF
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(116, 89, 254); // Primary color
+      doc.text("Interview Performance Report", 20, 20);
+
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 30);
+      doc.text(`Score: ${reportScore.innerText}/100`, 20, 37);
+
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, 45, 190, 45);
+
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Executive Summary", 20, 55);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(10);
+      const summaryLines = doc.splitTextToSize(document.getElementById('summary-text').innerText, 170);
+      doc.text(summaryLines, 20, 62);
+
+      let currentY = 62 + (summaryLines.length * 5) + 10;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Key Strengths", 20, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      currentY += 7;
+      (analysis.strengths || []).forEach(s => {
+        doc.text(`• ${s}`, 25, currentY);
+        currentY += 6;
+      });
+
+      currentY += 5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Areas for Improvement", 20, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      currentY += 7;
+      (analysis.weaknesses || analysis.areas_for_improvement || []).forEach(w => {
+        doc.text(`• ${w}`, 25, currentY);
+        currentY += 6;
+      });
+
+      doc.save(`Interview_Report_${context.interviewId}.pdf`);
+    };
 
     // Redirection Logic
-    let countdown = 10;
+    let countdown = 15;
     const redirectLabel = document.createElement('div');
     redirectLabel.style.marginTop = '20px';
     redirectLabel.style.color = 'var(--primary)';
     redirectLabel.style.textAlign = 'center';
     redirectLabel.style.fontWeight = 'bold';
-    reportText.parentNode.insertBefore(redirectLabel, reportText.nextSibling);
+    document.querySelector('.modal-content').appendChild(redirectLabel);
 
     const timer = setInterval(() => {
-      redirectLabel.innerText = `Redirecting to Dashboard in ${countdown}s...`;
+      redirectLabel.innerText = `View full analysis in Reports in ${countdown}s...`;
       if (countdown <= 0) {
         clearInterval(timer);
-        window.location.href = 'http://localhost:3000/candidate';
+        window.location.href = 'http://localhost:3000/candidate/reports';
       }
       countdown--;
     }, 1000);
 
     goDashboardBtn.onclick = () => {
       clearInterval(timer);
-      window.location.href = 'http://localhost:3000/candidate';
+      window.location.href = 'http://localhost:3000/candidate/reports';
     };
 
   } catch (err) {
     console.error('Report Error:', err);
-    reportText.innerText = "Error generating report. Please check the dashboard manually.";
-
-    // Fallback sync attempt using the local D-ID server endpoint if necessary
-    // But since context is passed, we shouldn't really need a double-sync here.
-
-    goDashboardBtn.classList.remove('hidden');
+    document.getElementById('report-loading-spinner').innerHTML = `
+      <div style="color: #ef4444;">Error generating report.</div>
+      <div style="font-size: 0.8rem; margin-top: 10px;">Please check the dashboard manually.</div>
+    `;
+    goDashboardBtn.innerText = "Go to Dashboard";
     goDashboardBtn.onclick = () => {
       window.location.href = 'http://localhost:3000/candidate';
     };
@@ -534,7 +646,11 @@ function setStreamVideoElement(stream) {
   if (isStreamReady) streamVideoElement.muted = false;
   if (streamVideoElement.paused) streamVideoElement.play().catch(() => { });
 }
-function playIdleVideo() { idleVideoElement.src = DID_API.service == 'clips' ? 'alex_v2_idle.mp4' : 'emma_idle.mp4'; }
+function playIdleVideo() {
+  idleVideoElement.src = DID_API.service == 'clips' ? 'alex_v2_idle.mp4' : 'indian-idle.mp4';
+  idleVideoElement.muted = true; // Stay muted for idle
+  idleVideoElement.play().catch(() => { });
+}
 function stopAllStreams() { if (streamVideoElement.srcObject) { streamVideoElement.srcObject.getTracks().forEach((track) => track.stop()); streamVideoElement.srcObject = null; } }
 function closePC(pc = peerConnection) {
   if (!pc) return;

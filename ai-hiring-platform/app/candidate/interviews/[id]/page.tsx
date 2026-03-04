@@ -18,9 +18,36 @@ export default function InterviewRoomPage() {
     const interviewId = params.id as string;
 
     useEffect(() => {
-        // Redirect all traffic to the new optimized standalone D-ID project
-        window.location.href = "http://localhost:3001";
-    }, []);
+        const redirectWithContext = async () => {
+            try {
+                // Get token from localStorage
+                const token = localStorage.getItem('token');
+
+                // Fetch interview details to get applicationId
+                const response = await api.get(`/interviews/${interviewId}`);
+                const interviewData = response.data;
+                const applicationId = interviewData.applicationId;
+
+                // Build query params
+                const params = new URLSearchParams({
+                    interviewId: interviewId,
+                    token: token || "",
+                    applicationId: applicationId || ""
+                });
+
+                // Redirect to standalone D-ID project with context
+                window.location.href = `http://localhost:3001?${params.toString()}`;
+            } catch (err) {
+                console.error("Failed to redirect with context:", err);
+                // Fallback redirect if API fails
+                window.location.href = "http://localhost:3001";
+            }
+        };
+
+        if (interviewId) {
+            redirectWithContext();
+        }
+    }, [interviewId]);
 
     const [interview, setInterview] = useState<any>(null);
     const [currentQuestion, setCurrentQuestion] = useState<any>(null);

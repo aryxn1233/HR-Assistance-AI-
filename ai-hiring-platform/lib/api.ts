@@ -9,11 +9,20 @@ const api = axios.create({
     },
 });
 
-// Add a request interceptor to include the JWT token
+// Helper to set the auth token for all subsequent requests
+export const setAuthToken = (token: string | null) => {
+    if (token) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+        delete api.defaults.headers.common['Authorization'];
+    }
+};
+
+// Add a request interceptor to include the JWT token (legacy support)
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        if (token) {
+        if (token && !config.headers.Authorization) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -26,11 +35,16 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
+            // With Clerk, we let the AuthGuard and Middleware handleauth state.
+            // Automatic redirects here can cause loops if backend/frontend tokens are out of sync.
+            console.error("API 401 Error - Unauthorized");
+            /*
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             if (typeof window !== 'undefined') {
                 window.location.href = '/login';
             }
+            */
         }
         return Promise.reject(error);
     }
