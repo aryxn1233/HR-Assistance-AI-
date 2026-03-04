@@ -1,48 +1,68 @@
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy } from 'passport-custom';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User, UserRole } from './user.entity';
-import { passportJwtSecret } from 'jwks-rsa';
-
 import { AuthService } from './auth.service';
+import { verifyToken } from '@clerk/backend';
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
+    private secretKey: string;
+    private authorizedParties: string[];
+
     constructor(
-        configService: ConfigService,
+        private configService: ConfigService,
         private authService: AuthService,
     ) {
-        // Clerk Publishable Key usually contains the Issuer URL implicitly
-        const clerkIssuer = configService.get<string>('CLERK_ISSUER_URL') || `https://dynamic-lamprey-28.clerk.accounts.dev`;
-
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            issuer: clerkIssuer,
-            algorithms: ['RS256'],
-            secretOrKeyProvider: passportJwtSecret({
-                cache: true,
-                rateLimit: true,
-                jwksRequestsPerMinute: 5,
-                jwksUri: `${clerkIssuer}/.well-known/jwks.json`,
-            }),
-        });
+        super();
+        this.secretKey = configService.get<string>('CLERK_SECRET_KEY') || '';
+        this.authorizedParties = [
+            'https://hr-assistance-ai.vercel.app',
+            'http://localhost:3000',
+        ];
     }
 
-    async validate(payload: any) {
-        const user = await this.authService.syncClerkUser(payload);
-
-        if (!user) {
-            throw new UnauthorizedException('User synchronization failed');
+    async validate(req: any): Promise<any> {
+        const authHeader = req.headers?.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            throw new UnauthorizedException('No Bearer token provided');
         }
 
-        return {
-            userId: user.id,
-            username: user.email,
-            role: user.role
-        };
+        const token = authHeader.substring(7);
+
+        try {
+            const payload = await verifyToken(token, {
+                secretKey: this.secretKey,
+                authorizedParties: this.authorizedParties,
+            });
+
+            if (!payload?.sub) {
+                throw new UnauthorizedException('Invalid token payload');
+            }
+
+            // Sync the user to our database using userId from Clerk
+            const user = await this.authService.syncClerkUser({
+                id: payload.sub,
+                email: '',
+                email_addresses: [],
+                first_name: '',
+                last_name: '',
+                image_url: null,
+                public_metadata: (payload as any).publicMetadata || {},
+            });
+
+            if (!user) {
+                throw new UnauthorizedException('User synchronization failed');
+            }
+
+            return {
+                userId: user.id,
+                username: user.email,
+                role: user.role,
+            };
+        } catch (err) {
+            console.error('Clerk token verification failed:', err?.message || err);
+            throw new UnauthorizedException('Invalid or expired Clerk token');
+        }
     }
 }
