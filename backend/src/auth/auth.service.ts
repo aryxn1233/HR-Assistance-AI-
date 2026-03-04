@@ -52,24 +52,46 @@ export class AuthService {
         return result;
     }
 
-    async syncClerkUser(data: any) {
-        const email = data.email || data.email_addresses?.[0]?.email_address;
-        if (!email) return null;
+    async syncClerkUser(data: any): Promise<User | null> {
+        // Find existing user by Clerk ID (passed as data.id from the strategy)
+        if (!data.id) return null;
 
-        let user = await this.usersRepository.findOne({ where: { email } });
+        let user = await this.usersRepository.findOne({ where: { clerkId: data.id } });
 
-        const userData = {
-            email: email,
+        // If not found by clerkId, try to find by email and link them mapping legacy users
+        if (!user && data.email_addresses?.[0]?.email_address) {
+            const email = data.email_addresses[0].email_address;
+            user = await this.usersRepository.findOne({ where: { email } });
+            if (user) {
+                user.clerkId = data.id;
+                await this.usersRepository.save(user);
+            }
+        }
+
+        const userData: Partial<User> = {
+            clerkId: data.id,
             firstName: data.first_name || data.firstName || '',
             lastName: data.last_name || data.lastName || '',
             avatarUrl: data.image_url || data.avatarUrl || data.profile_image_url || null,
         };
 
+        // Only update email if it was provided
+        const email = data.email || data.email_addresses?.[0]?.email_address;
+        if (email) {
+            userData.email = email;
+        }
+
         if (!user) {
             // Default to candidate if not specified
             const role = data.public_metadata?.role || data.role || UserRole.CANDIDATE;
+            // Generate a dummy email if none is provided to satisfy the unique constraint
+            const finalEmail = userData.email || `${data.id}@clerk.local`;
             user = this.usersRepository.create({
-                ...userData,
+                clerkId: data.id,
+                email: finalEmail,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                avatarUrl: userData.avatarUrl,
                 role: role as UserRole,
                 passwordHash: 'CLERK_MANAGED',
             });
