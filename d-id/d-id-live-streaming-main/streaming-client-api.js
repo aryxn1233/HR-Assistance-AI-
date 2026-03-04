@@ -193,7 +193,7 @@ async function processChatMessage(message, isStart = false) {
   }
 
   try {
-    const endpoint = isStart ? '/start-interview' : '/chat';
+    const endpoint = isStart ? 'https://hr-assistance-ai.onrender.com/start-interview' : 'https://hr-assistance-ai.onrender.com/chat';
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -447,12 +447,17 @@ endInterviewBtn.onclick = async () => {
   reportScore.innerText = "--";
 
   try {
-    const response = await fetch(`http://127.0.0.1:3003/interviews/${context.interviewId}/finish`, {
+    const response = await fetch(`https://hr-assistance-ai.onrender.com/generate-report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${context.token}`
-      }
+      },
+      body: JSON.stringify({
+        history: conversationHistory,
+        applicationId: context.applicationId,
+        token: context.token
+      })
     });
 
     const data = await response.json();
