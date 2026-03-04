@@ -46,7 +46,7 @@ export default function InterviewRoomPage() {
             } catch (err) {
                 console.error("Failed to redirect with context:", err);
                 // Fallback redirect if API fails
-                window.location.href = "http://localhost:3001";
+                window.location.href = streamUrl;
             }
         };
 

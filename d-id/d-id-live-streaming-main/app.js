@@ -27,6 +27,14 @@ app.get('/ws-streaming', function (req, res) {
   res.sendFile(__dirname + '/index-ws.html');
 });
 
+app.get('/api/credentials', (req, res) => {
+  res.json({
+    key: process.env.DID_API_KEY,
+    url: "https://api.d-id.com",
+    service: "talks"
+  });
+});
+
 require('dotenv').config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
