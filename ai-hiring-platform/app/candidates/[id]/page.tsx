@@ -83,7 +83,8 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             const token = localStorage.getItem('token');
 
             setTimeout(() => {
-                window.location.href = `http://localhost:3001?applicationId=${appId}&interviewId=${interviewId}&token=${token}`;
+                const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
+                window.location.href = `${streamUrl}?applicationId=${appId}&interviewId=${interviewId}&token=${token}`;
             }, 1000)
             fetchDetails()
         } catch (error) {

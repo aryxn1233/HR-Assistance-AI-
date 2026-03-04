@@ -27,13 +27,15 @@ export default function InterviewRoomPage() {
                     const appId = candidateInterview.applicationId;
 
                     // Construct URL explicitly with trailing slash to avoid Express redirects
-                    const finalUrl = `http://localhost:3001/?applicationId=${encodeURIComponent(appId || '')}&interviewId=${encodeURIComponent(interviewId)}&token=${encodeURIComponent(token)}`;
+                    const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
+                    const finalUrl = `${streamUrl}?applicationId=${encodeURIComponent(appId || '')}&interviewId=${encodeURIComponent(interviewId)}&token=${encodeURIComponent(token)}`;
 
                     console.log("NAVIGATING TO INTERVIEW ROOM (PORT 3001):", finalUrl);
                     window.location.href = finalUrl;
                 } catch (err) {
                     console.error("Failed to fetch interview details for redirect", err);
-                    const finalUrl = `http://localhost:3001/?interviewId=${encodeURIComponent(interviewId)}&token=${encodeURIComponent(token)}`;
+                    const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
+                    const finalUrl = `${streamUrl}?interviewId=${encodeURIComponent(interviewId)}&token=${encodeURIComponent(token)}`;
                     console.log("FALLBACK NAVIGATING TO INTERVIEW ROOM:", finalUrl);
                     window.location.href = finalUrl;
                 }

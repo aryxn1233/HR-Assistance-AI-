@@ -36,7 +36,13 @@ export default function InterviewRoomPage() {
                 });
 
                 // Redirect to standalone D-ID project with context
-                window.location.href = `http://localhost:3001?${params.toString()}`;
+                const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
+
+                if (params.toString()) {
+                    window.location.href = `${streamUrl}?${params.toString()}`;
+                } else {
+                    window.location.href = streamUrl;
+                }
             } catch (err) {
                 console.error("Failed to redirect with context:", err);
                 // Fallback redirect if API fails
