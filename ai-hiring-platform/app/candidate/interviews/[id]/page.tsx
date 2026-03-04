@@ -11,6 +11,7 @@ import DIdAvatar from "@/components/interview/DIdAvatar";
 import { WebcamPreview } from "@/components/interview/WebcamPreview";
 import { useWebSpeech } from "@/hooks/useWebSpeech";
 import { avatarStateManager } from "@/lib/InterviewAvatarStateManager";
+import { getFreshToken } from "@/lib/tokenManager";
 
 export default function InterviewRoomPage() {
     const params = useParams();
