@@ -19,6 +19,7 @@ export default function InterviewRoomPage() {
 
     useEffect(() => {
         const redirectWithContext = async () => {
+            const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
             try {
                 // Get token from localStorage
                 const token = localStorage.getItem('token');
@@ -34,9 +35,6 @@ export default function InterviewRoomPage() {
                     token: token || "",
                     applicationId: applicationId || ""
                 });
-
-                // Redirect to standalone D-ID project with context
-                const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
 
                 if (params.toString()) {
                     window.location.href = `${streamUrl}?${params.toString()}`;
