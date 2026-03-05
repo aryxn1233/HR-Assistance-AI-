@@ -250,6 +250,8 @@ async function processChatMessage(message, isStart = false) {
       console.error('D-ID Speaking Error:', streamRes.status, errDetails);
       if (streamRes.status === 401) {
         addMessageToChat('interviewer', "System Error: Your D-ID API Key appears to be invalid (401). Please verify it in api.json.");
+      } else if (streamRes.status === 402) {
+        addMessageToChat('interviewer', "System Error: Insufficient Credits (402). Your D-ID account has run out of video generation credits.");
       } else if (streamRes.status === 403) {
         addMessageToChat('interviewer', "System Error: Access Forbidden (403). This voice or service might not be available on your current plan.");
       } else {
