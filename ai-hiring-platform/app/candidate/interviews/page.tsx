@@ -48,12 +48,13 @@ export default function CandidateInterviewsPage() {
             const data = response.data
             // The response is { status, question } where question contains interviewId
             const interviewId = data.question?.interviewId || data.id
+            const interviewToken = data.interviewToken
             if (!interviewId) {
                 alert("Interview started but could not get interview ID. Please refresh and check Interviews page.")
                 return
             }
             // Redirect to the standalone D-ID interview project with sync context
-            const token = await getFreshToken();
+            const token = interviewToken || await getFreshToken();
             const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
             const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
             window.location.href = `${streamUrl}?applicationId=${applicationId}&interviewId=${interviewId}&token=${token}&backendUrl=${encodeURIComponent(backendUrl)}`;
@@ -183,10 +184,17 @@ export default function CandidateInterviewsPage() {
                                     <CardFooter className="bg-muted/30 pt-4 pb-4">
                                         <Button
                                             onClick={async () => {
-                                                const token = await getFreshToken() || '';
-                                                const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
-                                                const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-                                                window.location.href = `${streamUrl}?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${token}&backendUrl=${encodeURIComponent(backendUrl)}`;
+                                                try {
+                                                    const response = await api.get(`/interviews/${interview.id}`);
+                                                    const detailedInterview = response.data;
+                                                    const token = detailedInterview.interviewToken || await getFreshToken() || '';
+                                                    const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
+                                                    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                                                    window.location.href = `${streamUrl}?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${token}&backendUrl=${encodeURIComponent(backendUrl)}`;
+                                                } catch (err) {
+                                                    console.error("Failed to join interview", err);
+                                                    alert("Failed to join interview. Please try again.");
+                                                }
                                             }}
                                             className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
                                             Join Interview Room

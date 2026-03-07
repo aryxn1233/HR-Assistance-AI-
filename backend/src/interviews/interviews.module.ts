@@ -15,6 +15,7 @@ import { Application } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
 import { InterviewQuestionModule } from './question-generation/interview-question.module';
 import { InterviewAgentModule } from '../interview-agent/interview-agent.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -31,9 +32,10 @@ import { InterviewAgentModule } from '../interview-agent/interview-agent.module'
     DIdModule,
     InterviewQuestionModule,
     InterviewAgentModule,
+    AuthModule,
   ],
   controllers: [InterviewsController],
   providers: [InterviewsService, InterviewGateway],
   exports: [InterviewsService],
 })
-export class InterviewsModule {}
+export class InterviewsModule { }

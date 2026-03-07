@@ -13,7 +13,7 @@ import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 
 @Controller('interviews')
 export class InterviewsController {
-  constructor(private readonly interviewsService: InterviewsService) {}
+  constructor(private readonly interviewsService: InterviewsService) { }
 
   @UseGuards(CombinedAuthGuard)
   @Post()
@@ -21,9 +21,10 @@ export class InterviewsController {
     return this.interviewsService.create(body);
   }
 
+  @UseGuards(CombinedAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.interviewsService.findOne(id);
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.interviewsService.findOne(id, req.user?.userId);
   }
 
   @UseGuards(CombinedAuthGuard)

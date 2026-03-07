@@ -28,6 +28,6 @@ import { LocalStrategy } from './local.strategy';
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, ClerkStrategy],
   controllers: [AuthController],
-  exports: [AuthService], // Export AuthService if needed elsewhere
+  exports: [AuthService, JwtModule], // Export AuthService and JwtModule if needed elsewhere
 })
-export class AuthModule {}
+export class AuthModule { }

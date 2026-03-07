@@ -29,6 +29,7 @@ import { InterviewSessionService as OldSessionService } from './question-generat
 import { InterviewAgentService } from '../interview-agent/services/interview-agent.service';
 import { LiveInterviewService } from '../interview-agent/services/live-interview.service';
 import { LiveInterviewGateway } from '../interview-agent/gateways/live-interview.gateway';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class InterviewsService {
@@ -53,6 +54,7 @@ export class InterviewsService {
         private interviewAgentService: InterviewAgentService,
         private liveInterviewService: LiveInterviewService,
         private liveInterviewGateway: LiveInterviewGateway,
+        private jwtService: JwtService,
     ) { }
 
     async startInterviewByApplication(
@@ -108,7 +110,17 @@ export class InterviewsService {
             await this.interviewsRepository.save(interview);
         }
 
-        return interview;
+        // Generate a long-lived Interview Session Token (1 hour)
+        // This solves the Clerk JWT expiry issue (usually 1 min)
+        const interviewToken = this.jwtService.sign({
+            sub: userId,
+            email: application.candidate?.user?.email,
+            role: 'candidate',
+            interviewId: interview.id,
+            candidateId: application.candidateId,
+        }, { expiresIn: '1h' });
+
+        return { ...interview, interviewToken };
     }
 
     async submitInterviewScore(
@@ -219,14 +231,27 @@ export class InterviewsService {
         return query.getMany();
     }
 
-    async findOne(id: string): Promise<Interview> {
+    async findOne(id: string, userId?: string): Promise<any> {
         const interview = await this.interviewsRepository.findOne({
             where: { id },
             relations: ['candidate', 'candidate.user', 'job', 'questions', 'report'],
         });
         if (!interview)
             throw new NotFoundException(`Interview with ID ${id} not found`);
-        return interview;
+
+        // Generate token if it's the candidate requesting
+        let interviewToken: string | undefined;
+        if (userId && interview.candidate?.user?.id === userId) {
+            interviewToken = this.jwtService.sign({
+                sub: userId,
+                email: interview.candidate?.user?.email,
+                role: 'candidate',
+                interviewId: interview.id,
+                candidateId: interview.candidateId,
+            }, { expiresIn: '1h' });
+        }
+
+        return { ...interview, interviewToken };
     }
 
     async startSession(
