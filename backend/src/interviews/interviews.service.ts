@@ -12,6 +12,8 @@ import { Candidate } from '../candidates/candidate.entity';
 import { DIdService } from '../did/did.service';
 import { DIdSessionManager } from '../did/did-session.manager';
 import { InterviewSessionService } from './question-generation/interview-session.service';
+import { LiveInterviewService } from '../interview-agent/services/live-interview.service';
+import { LiveInterviewGateway } from '../interview-agent/gateways/live-interview.gateway';
 
 @Injectable()
 export class InterviewsService {
@@ -33,6 +35,8 @@ export class InterviewsService {
         private didService: DIdService,
         private didSessionManager: DIdSessionManager,
         private interviewSessionService: InterviewSessionService,
+        private liveInterviewService: LiveInterviewService,
+        private liveInterviewGateway: LiveInterviewGateway,
     ) { }
 
     async startInterviewByApplication(applicationId: string, userId: string): Promise<any> {
@@ -189,6 +193,25 @@ export class InterviewsService {
                 console.log(`D-ID: Session ${sessionId} registered for interview ${id}`);
             }
 
+            const user = interview.candidate?.user;
+            const candidateName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Applicant' : 'Applicant';
+            const jobRole = interview.job?.title || 'Unknown Role';
+
+            this.liveInterviewService.addActiveInterview({
+                interviewId: id,
+                candidateName,
+                jobRole,
+                startedAt: new Date(),
+                status: 'IN_PROGRESS'
+            });
+
+            this.liveInterviewGateway.broadcastInterviewStarted({
+                interviewId: id,
+                candidateName,
+                jobRole,
+                startedAt: new Date()
+            });
+
             return await this.fetchAndSpeakNextQuestion(interview);
         } catch (err: any) {
             console.error(`startSession error for ${id}:`, err);
@@ -289,6 +312,7 @@ export class InterviewsService {
 
     private async finishInterview(interview: Interview, closingMessage?: string): Promise<any> {
         interview.status = InterviewStatus.COMPLETED;
+        this.liveInterviewService.removeActiveInterview(interview.id);
 
         if (closingMessage) {
             const finalTranscript = [...(interview.transcript || []), { speaker: 'AI' as const, message: closingMessage, timestamp: new Date() }];

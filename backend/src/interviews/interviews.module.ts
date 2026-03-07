@@ -14,6 +14,7 @@ import { DIdModule } from '../did/did.module';
 import { Application } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
 import { InterviewQuestionModule } from './question-generation/interview-question.module';
+import { InterviewAgentModule } from '../interview-agent/interview-agent.module';
 
 @Module({
     imports: [
@@ -21,7 +22,8 @@ import { InterviewQuestionModule } from './question-generation/interview-questio
         AIModule,
         GeminiModule,
         DIdModule,
-        InterviewQuestionModule
+        InterviewQuestionModule,
+        InterviewAgentModule
     ],
     controllers: [InterviewsController],
     providers: [InterviewsService, InterviewGateway],

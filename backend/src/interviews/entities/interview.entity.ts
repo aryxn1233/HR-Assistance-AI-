@@ -10,6 +10,9 @@ export enum InterviewStatus {
     IN_PROGRESS = 'in_progress',
     COMPLETED = 'completed',
     CANCELLED = 'cancelled',
+    FAILED_INTERVIEW = 'failed_interview',
+    TERMINATED_BY_RECRUITER = 'terminated_by_recruiter',
+    AI_FALLBACK_MODE = 'ai_fallback_mode',
 }
 
 @Entity('interviews')
@@ -63,7 +66,16 @@ export class Interview {
     feedback: any;
 
     @Column('jsonb', { nullable: true, default: [] })
-    transcript: { speaker: 'AI' | 'Candidate'; message: string; timestamp: Date }[];
+    transcript: any[];
+
+    @Column({ type: 'int', default: 0 })
+    skipCounter: number;
+
+    @Column({ type: 'timestamp', nullable: true })
+    endedAt: Date;
+
+    @Column({ type: 'varchar', nullable: true })
+    terminationReason: string;
 
     @Column('jsonb', { nullable: true, default: [] })
     history: { role: string; content: string }[];

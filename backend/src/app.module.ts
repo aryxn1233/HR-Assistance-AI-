@@ -13,6 +13,7 @@ import { AppService } from './app.service';
 import { GeminiModule } from './gemini/gemini.module';
 import { DIdModule } from './did/did.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { InterviewAgentModule } from './interview-agent/interview-agent.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     GeminiModule,
     DIdModule,
     WebhooksModule,
+    InterviewAgentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
