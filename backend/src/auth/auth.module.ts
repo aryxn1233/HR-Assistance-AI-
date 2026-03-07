@@ -11,20 +11,23 @@ import { ClerkStrategy } from './clerk.strategy';
 import { LocalStrategy } from './local.strategy';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([User]),
-        PassportModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET'),
-                signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION') || '1h' },
-            } as any),
-            inject: [ConfigService],
-        }),
-    ],
-    providers: [AuthService, LocalStrategy, JwtStrategy, ClerkStrategy],
-    controllers: [AuthController],
-    exports: [AuthService], // Export AuthService if needed elsewhere
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) =>
+        ({
+          secret: configService.get<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn: configService.get<string>('JWT_EXPIRATION') || '1h',
+          },
+        }) as any,
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [AuthService, LocalStrategy, JwtStrategy, ClerkStrategy],
+  controllers: [AuthController],
+  exports: [AuthService], // Export AuthService if needed elsewhere
 })
-export class AuthModule { }
+export class AuthModule {}

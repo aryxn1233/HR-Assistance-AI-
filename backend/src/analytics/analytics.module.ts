@@ -7,8 +7,8 @@ import { Candidate } from '../candidates/candidate.entity';
 import { Interview } from '../interviews/entities/interview.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Job, Candidate, Interview])],
-    controllers: [AnalyticsController],
-    providers: [AnalyticsService],
+  imports: [TypeOrmModule.forFeature([Job, Candidate, Interview])],
+  controllers: [AnalyticsController],
+  providers: [AnalyticsService],
 })
-export class AnalyticsModule { }
+export class AnalyticsModule {}

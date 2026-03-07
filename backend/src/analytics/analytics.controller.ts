@@ -4,11 +4,11 @@ import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 
 @Controller('analytics')
 export class AnalyticsController {
-    constructor(private readonly analyticsService: AnalyticsService) { }
+  constructor(private readonly analyticsService: AnalyticsService) {}
 
-    @UseGuards(CombinedAuthGuard)
-    @Get('dashboard')
-    getDashboardMetrics() {
-        return this.analyticsService.getDashboardMetrics();
-    }
+  @UseGuards(CombinedAuthGuard)
+  @Get('dashboard')
+  getDashboardMetrics() {
+    return this.analyticsService.getDashboardMetrics();
+  }
 }

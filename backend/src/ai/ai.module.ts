@@ -3,8 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { OpenAIService } from './openai.service';
 
 @Module({
-    imports: [ConfigModule],
-    providers: [OpenAIService],
-    exports: [OpenAIService],
+  imports: [ConfigModule],
+  providers: [OpenAIService],
+  exports: [OpenAIService],
 })
-export class AIModule { }
+export class AIModule {}

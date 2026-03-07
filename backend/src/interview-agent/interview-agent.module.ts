@@ -14,24 +14,20 @@ import { LiveInterviewGateway } from './gateways/live-interview.gateway';
 import { InterviewAgentController } from './interview-agent.controller';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Interview, FallbackQuestion]),
-        AuthModule
-    ],
-    controllers: [InterviewAgentController],
-    providers: [
-        OpenAiManagerService,
-        QuestionFallbackService,
-        InterviewSessionService,
-        InterviewAgentService,
-        LiveInterviewService,
-        RecruiterControlService,
-        LiveInterviewGateway
-    ],
-    exports: [
-        InterviewAgentService,
-        LiveInterviewService,
-        LiveInterviewGateway
-    ]
+  imports: [
+    TypeOrmModule.forFeature([Interview, FallbackQuestion]),
+    AuthModule,
+  ],
+  controllers: [InterviewAgentController],
+  providers: [
+    OpenAiManagerService,
+    QuestionFallbackService,
+    InterviewSessionService,
+    InterviewAgentService,
+    LiveInterviewService,
+    RecruiterControlService,
+    LiveInterviewGateway,
+  ],
+  exports: [InterviewAgentService, LiveInterviewService, LiveInterviewGateway],
 })
-export class InterviewAgentModule { }
+export class InterviewAgentModule {}

@@ -17,16 +17,23 @@ import { InterviewQuestionModule } from './question-generation/interview-questio
 import { InterviewAgentModule } from '../interview-agent/interview-agent.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Interview, InterviewQuestion, InterviewAnswer, InterviewReport, Application, Candidate]),
-        AIModule,
-        GeminiModule,
-        DIdModule,
-        InterviewQuestionModule,
-        InterviewAgentModule
-    ],
-    controllers: [InterviewsController],
-    providers: [InterviewsService, InterviewGateway],
-    exports: [InterviewsService],
+  imports: [
+    TypeOrmModule.forFeature([
+      Interview,
+      InterviewQuestion,
+      InterviewAnswer,
+      InterviewReport,
+      Application,
+      Candidate,
+    ]),
+    AIModule,
+    GeminiModule,
+    DIdModule,
+    InterviewQuestionModule,
+    InterviewAgentModule,
+  ],
+  controllers: [InterviewsController],
+  providers: [InterviewsService, InterviewGateway],
+  exports: [InterviewsService],
 })
-export class InterviewsModule { }
+export class InterviewsModule {}

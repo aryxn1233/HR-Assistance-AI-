@@ -57,6 +57,84 @@ const context = {
   interviewId: urlParams.get('interviewId'),
   token: urlParams.get('token')
 };
+
+// --- Socket.io for Real-time Monitoring ---
+let socket;
+let recruiterPeerConnection;
+
+function initSocketMonitoring() {
+  if (!context.interviewId) return;
+
+  const backendUrl = urlParams.get('backendUrl') || 'http://localhost:3003';
+  const socketUrl = `${backendUrl}/recruiter-monitor`;
+
+  socket = io(socketUrl, {
+    auth: { token: context.token },
+    transports: ['websocket']
+  });
+
+  socket.on('connect', () => {
+    console.log('Socket: Connected for monitoring');
+    socket.emit('join-room', { interviewId: context.interviewId, role: 'candidate' });
+  });
+
+  socket.on('recruiter-answer', async (data) => {
+    console.log('Socket: Recruiter answer received');
+    if (recruiterPeerConnection) {
+      await recruiterPeerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    }
+  });
+
+  socket.on('ice-candidate', async (data) => {
+    console.log('Socket: ICE candidate received from recruiter');
+    if (recruiterPeerConnection) {
+      await recruiterPeerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    }
+  });
+
+  socket.on('interview:terminated', (data) => {
+    console.log('Socket: Interview terminated by recruiter:', data.reason);
+    addMessageToChat('interviewer', data.message || "The interview has been ended by the recruiter.");
+    stopAllStreams();
+    closePC();
+    mainBtn.disabled = true;
+    mainBtn.innerText = 'Interview Terminated';
+  });
+}
+
+async function startRecruiterSignaling() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    recruiterPeerConnection = new RTCPeerConnection();
+
+    stream.getTracks().forEach(track => recruiterPeerConnection.addTrack(track, stream));
+
+    recruiterPeerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('ice-candidate', {
+          interviewId: context.interviewId,
+          candidate: event.candidate
+        });
+      }
+    };
+
+    const offer = await recruiterPeerConnection.createOffer();
+    await recruiterPeerConnection.setLocalDescription(offer);
+
+    socket.emit('candidate-offer', {
+      interviewId: context.interviewId,
+      offer
+    });
+    console.log('Socket: Sent candidate offer to recruiter');
+  } catch (err) {
+    console.warn('Failed to start webcam for recruiter monitoring:', err);
+  }
+}
+
+if (context.interviewId && context.token) {
+  initSocketMonitoring();
+}
+
 console.log('Extracted context:', context);
 if (!context.interviewId || !context.token) {
   console.error('CRITICAL: Missing Interview Context (ID or Token) in URL parameters!');
@@ -194,7 +272,7 @@ async function processChatMessage(message, isStart = false) {
   }
 
   try {
-    const endpoint = isStart ? 'https://hr-assistance-ai.onrender.com/start-interview' : 'https://hr-assistance-ai.onrender.com/chat';
+    const endpoint = isStart ? `${window.location.origin}/start-interview` : `${window.location.origin}/chat`;
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -332,13 +410,13 @@ function initRecognition() {
     }
     isRecognizing = false;
     mainBtn.classList.remove('is-listening');
-    
+
     // Attempt recovery on network/aborted errors after a brief pause
     if (err.error === 'network' || err.error === 'aborted') {
       console.log('STT: Attempting to recover from error in 2 seconds...');
       setTimeout(() => {
         if (!isAISpeaking && isInterviewStarted) {
-           autoStartListening();
+          autoStartListening();
         }
       }, 2000);
     }
@@ -360,8 +438,8 @@ async function autoStartListening() {
   if (!recognition || isRecognizing || isAISpeaking) return;
   try {
     recognition.start();
-  } catch (e) { 
-    console.warn('Auto-listen fail (already started?)', e); 
+  } catch (e) {
+    console.warn('Auto-listen fail (already started?)', e);
   }
 }
 
@@ -428,6 +506,9 @@ function onStreamEvent(message) {
         processChatMessage(null, true); // First Question
         userInputArea.classList.remove('hidden');
         document.getElementById('end-interview-btn').classList.remove('hidden');
+
+        // Start sharing webcam with recruiter when interview actually goes live
+        startRecruiterSignaling();
       }, 1000);
     } else if (event === 'stream/started') {
       isAISpeaking = true;

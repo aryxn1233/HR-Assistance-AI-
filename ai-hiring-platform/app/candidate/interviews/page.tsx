@@ -55,7 +55,8 @@ export default function CandidateInterviewsPage() {
             // Redirect to the standalone D-ID interview project with sync context
             const token = await getFreshToken();
             const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
-            window.location.href = `${streamUrl}?applicationId=${applicationId}&interviewId=${interviewId}&token=${token}`;
+            const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+            window.location.href = `${streamUrl}?applicationId=${applicationId}&interviewId=${interviewId}&token=${token}&backendUrl=${encodeURIComponent(backendUrl)}`;
         } catch (error: any) {
             console.error("Failed to start interview", error)
             const msg = error?.response?.data?.message || "Failed to start interview. Please try again."
@@ -180,14 +181,16 @@ export default function CandidateInterviewsPage() {
                                         </div>
                                     </CardContent>
                                     <CardFooter className="bg-muted/30 pt-4 pb-4">
-                                        <Button 
+                                        <Button
                                             onClick={async () => {
                                                 const token = await getFreshToken() || '';
-                                                window.location.href = `${process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001'}?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${token}`;
+                                                const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
+                                                const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+                                                window.location.href = `${streamUrl}?applicationId=${interview.applicationId}&interviewId=${interview.id}&token=${token}&backendUrl=${encodeURIComponent(backendUrl)}`;
                                             }}
                                             className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                                                Join Interview Room
-                                                <ArrowRight className="ml-2 h-4 w-4 font-bold" />
+                                            Join Interview Room
+                                            <ArrowRight className="ml-2 h-4 w-4 font-bold" />
                                         </Button>
                                     </CardFooter>
                                 </Card>

@@ -1,24 +1,32 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Candidate } from './candidate.entity';
 
 @Entity('resumes')
 export class Resume {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column('uuid')
-    candidateId: string;
+  @Column('uuid')
+  candidateId: string;
 
-    @ManyToOne(() => Candidate)
-    @JoinColumn({ name: 'candidateId' })
-    candidate: Candidate;
+  @ManyToOne(() => Candidate)
+  @JoinColumn({ name: 'candidateId' })
+  candidate: Candidate;
 
-    @Column()
-    fileUrl: string;
+  @Column()
+  fileUrl: string;
 
-    @Column('text', { nullable: true })
-    extractedText: string;
+  @Column('text', { nullable: true })
+  extractedText: string;
 
-    @CreateDateColumn()
-    uploadedAt: Date;
+  @CreateDateColumn()
+  uploadedAt: Date;
 }

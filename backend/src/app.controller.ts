@@ -4,7 +4,7 @@ import { CombinedAuthGuard } from './auth/combined-auth.guard';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) { }
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   getHello(): string {
@@ -15,7 +15,11 @@ export class AppController {
   @Get('debug/auth-header')
   debugAuthHeader(@Headers('authorization') authHeader: string) {
     if (!authHeader) {
-      return { status: 'NO TOKEN FOUND', header: null, hint: 'Authorization header is missing from the request' };
+      return {
+        status: 'NO TOKEN FOUND',
+        header: null,
+        hint: 'Authorization header is missing from the request',
+      };
     }
     const tokenPreview = authHeader?.startsWith('Bearer ')
       ? authHeader.substring(7, 30) + '...'

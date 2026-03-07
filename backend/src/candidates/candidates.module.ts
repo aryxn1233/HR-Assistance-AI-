@@ -15,16 +15,22 @@ import { Interview } from '../interviews/entities/interview.entity';
 import { InterviewQuestionModule } from '../interviews/question-generation/interview-question.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Candidate, Application, Job, Interview, CandidateExperience]),
-        AIModule,
-        AuthModule,
-        JobsModule,
-        ScoringModule,
-        InterviewQuestionModule,
-    ],
-    controllers: [CandidatesController],
-    providers: [CandidatesService],
-    exports: [CandidatesService],
+  imports: [
+    TypeOrmModule.forFeature([
+      Candidate,
+      Application,
+      Job,
+      Interview,
+      CandidateExperience,
+    ]),
+    AIModule,
+    AuthModule,
+    JobsModule,
+    ScoringModule,
+    InterviewQuestionModule,
+  ],
+  controllers: [CandidatesController],
+  providers: [CandidatesService],
+  exports: [CandidatesService],
 })
-export class CandidatesModule { }
+export class CandidatesModule {}

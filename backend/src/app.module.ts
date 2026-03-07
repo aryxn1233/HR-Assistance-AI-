@@ -31,9 +31,11 @@ import { InterviewAgentModule } from './interview-agent/interview-agent.module';
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Creates tables on first run - disable after first deploy
-        ssl: configService.get<string>('DB_HOST')?.includes('render.com') || configService.get<string>('NODE_ENV') === 'production'
-          ? { rejectUnauthorized: false }
-          : false,
+        ssl:
+          configService.get<string>('DB_HOST')?.includes('render.com') ||
+          configService.get<string>('NODE_ENV') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
       inject: [ConfigService],
     }),
@@ -50,4 +52,4 @@ import { InterviewAgentModule } from './interview-agent/interview-agent.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

@@ -3,8 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { GeminiService } from './gemini.service';
 
 @Module({
-    imports: [ConfigModule],
-    providers: [GeminiService],
-    exports: [GeminiService],
+  imports: [ConfigModule],
+  providers: [GeminiService],
+  exports: [GeminiService],
 })
-export class GeminiModule { }
+export class GeminiModule {}

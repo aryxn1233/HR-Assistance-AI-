@@ -147,7 +147,7 @@ app.post('/chat', async (req, res) => {
     // Main backend returns { status, question }
     // streaming-client-api expects { text }
     res.json({
-      text: data.question?.questionText || data.text || "I'm having trouble retrieving the next question. Please check your connection.",
+      text: data.question?.questionText || data.text || data.message || "I'm having trouble retrieving the next question.",
       ...data
     });
   } catch (err) {
@@ -189,7 +189,7 @@ app.post('/start-interview', async (req, res) => {
     const data = await response.json();
     console.log('Backend /start response:', JSON.stringify(data).substring(0, 100));
     res.json({
-      text: data.question?.questionText || data.text || "Hello! I'm your AI interviewer. I'm ready to begin when you are.",
+      text: data.question?.questionText || data.text || data.message || "Hello! I'm your AI interviewer. I'm ready to begin when you are.",
       ...data
     });
   } catch (err) {

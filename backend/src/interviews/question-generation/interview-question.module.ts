@@ -9,21 +9,18 @@ import { Application } from '../../candidates/application.entity';
 import { Job } from '../../jobs/job.entity';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Application, Job]),
-        GeminiModule,
-    ],
-    providers: [
-        ResumeParserService,
-        SkillMatchingService,
-        QuestionGenerationService,
-        InterviewSessionService
-    ],
-    exports: [
-        ResumeParserService,
-        SkillMatchingService,
-        QuestionGenerationService,
-        InterviewSessionService
-    ],
+  imports: [TypeOrmModule.forFeature([Application, Job]), GeminiModule],
+  providers: [
+    ResumeParserService,
+    SkillMatchingService,
+    QuestionGenerationService,
+    InterviewSessionService,
+  ],
+  exports: [
+    ResumeParserService,
+    SkillMatchingService,
+    QuestionGenerationService,
+    InterviewSessionService,
+  ],
 })
-export class InterviewQuestionModule { }
+export class InterviewQuestionModule {}

@@ -1,31 +1,38 @@
-import { Controller, Request, Post, UseGuards, Body, Get } from '@nestjs/common';
+import {
+  Controller,
+  Request,
+  Post,
+  UseGuards,
+  Body,
+  Get,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
-    @UseGuards(AuthGuard('local'))
-    @Post('login')
-    async login(@Request() req) {
-        return this.authService.login(req.user);
-    }
+  @UseGuards(AuthGuard('local'))
+  @Post('login')
+  async login(@Request() req) {
+    return this.authService.login(req.user);
+  }
 
-    @Post('register')
-    async register(@Body() body) {
-        return this.authService.register(body);
-    }
+  @Post('register')
+  async register(@Body() body) {
+    return this.authService.register(body);
+  }
 
-    @UseGuards(AuthGuard('jwt'))
-    @Get('profile')
-    getProfile(@Request() req) {
-        return req.user;
-    }
+  @UseGuards(AuthGuard('jwt'))
+  @Get('profile')
+  getProfile(@Request() req) {
+    return req.user;
+  }
 
-    @UseGuards(AuthGuard('jwt'))
-    @Post('change-password')
-    async changePassword(@Request() req, @Body() body) {
-        return this.authService.changePassword(req.user.userId, body);
-    }
+  @UseGuards(AuthGuard('jwt'))
+  @Post('change-password')
+  async changePassword(@Request() req, @Body() body) {
+    return this.authService.changePassword(req.user.userId, body);
+  }
 }
