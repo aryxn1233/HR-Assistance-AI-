@@ -19,6 +19,7 @@ import {
     Power
 } from "lucide-react"
 import api from "@/lib/api"
+import { getFreshToken } from "@/lib/tokenManager"
 import { io, Socket } from "socket.io-client"
 import { toast } from "sonner"
 
@@ -60,68 +61,76 @@ export default function RecruiterMonitorPage() {
 
         fetchDetails()
 
-        // Socket Monitoring
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-        const s = io(`${backendUrl}/recruiter-monitor`, {
-            auth: { token: localStorage.getItem('token') },
-            transports: ['websocket']
-        })
+        let activeSocket: any = null
 
-        s.on('connect', () => {
-            console.log('Socket: Connected as recruiter')
-            s.emit('join-room', { interviewId, role: 'recruiter' })
-        })
-
-        s.on('candidate-offer', async (data) => {
-            console.log('Socket: Received offer from candidate')
-            const pc = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        const connectSocket = async () => {
+            const token = await getFreshToken()
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003').replace(/\/api$/, '')
+            activeSocket = io(`${baseUrl}/recruiter-monitor`, {
+                auth: { token },
+                transports: ['websocket']
             })
 
-            pc.ontrack = (event) => {
-                console.log('WebRTC: Received remote track')
-                setRemoteStream(event.streams[0])
-            }
+            activeSocket.on('connect', () => {
+                console.log('Socket: Connected as recruiter')
+                activeSocket.emit('join-room', { interviewId, role: 'recruiter' })
+            })
 
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    s.emit('ice-candidate', { interviewId, candidate: event.candidate })
+            activeSocket.on('candidate-offer', async (data: any) => {
+                console.log('Socket: Received offer from candidate')
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                })
+
+                pc.ontrack = (event) => {
+                    console.log('WebRTC: Received remote track')
+                    setRemoteStream(event.streams[0])
                 }
-            }
 
-            await pc.setRemoteDescription(new RTCSessionDescription(data.offer))
-            const answer = await pc.createAnswer()
-            await pc.setLocalDescription(answer)
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        activeSocket.emit('ice-candidate', { interviewId, candidate: event.candidate })
+                    }
+                }
 
-            s.emit('recruiter-answer', { interviewId, answer })
-            setPeerConnection(pc)
-        })
+                await pc.setRemoteDescription(new RTCSessionDescription(data.offer))
+                const answer = await pc.createAnswer()
+                await pc.setLocalDescription(answer)
 
-        s.on('ice-candidate', async (data) => {
-            if (peerConnection) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
-            }
-        })
+                activeSocket.emit('recruiter-answer', { interviewId, answer })
+                setPeerConnection(pc)
+            })
 
-        s.on('interview:question', (data) => {
-            setMessages(prev => [...prev, { speaker: 'AI', message: data.text, timestamp: new Date() }])
-        })
+            activeSocket.on('ice-candidate', async (data: any) => {
+                if (peerConnection) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+                }
+            })
 
-        s.on('interview:answer', (data) => {
-            setMessages(prev => [...prev, { speaker: 'Candidate', message: data.text, timestamp: new Date() }])
-        })
+            activeSocket.on('interview:question', (data: any) => {
+                setMessages(prev => [...prev, { speaker: 'AI', message: msgText(data), timestamp: new Date() }])
+            })
 
-        s.on('interview:status', (data) => {
-            if (data.status === 'completed' || data.status === 'terminated' || data.status === 'FAILED_INTERVIEW') {
-                toast.info(`Interview has ended: ${data.status}`)
-                setTimeout(() => router.push('/recruiter/interviews'), 2000)
-            }
-        })
+            activeSocket.on('interview:answer', (data: any) => {
+                setMessages(prev => [...prev, { speaker: 'Candidate', message: msgText(data), timestamp: new Date() }])
+            })
 
-        setSocket(s)
+            activeSocket.on('interview:status', (data: any) => {
+                if (data.status === 'completed' || data.status === 'terminated' || data.status === 'FAILED_INTERVIEW') {
+                    toast.info(`Interview has ended: ${data.status}`)
+                    setTimeout(() => router.push('/recruiter/interviews'), 2000)
+                }
+            })
+
+            setSocket(activeSocket)
+        }
+
+        const msgText = (data: any) => data.text || data.question || data.answer || ""
+
+        connectSocket()
 
         return () => {
-            s.disconnect()
+            if (activeSocket) activeSocket.disconnect()
             peerConnection?.close()
         }
     }, [interviewId])

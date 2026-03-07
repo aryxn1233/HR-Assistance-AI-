@@ -66,7 +66,8 @@ function initSocketMonitoring() {
   if (!context.interviewId) return;
 
   const backendUrl = urlParams.get('backendUrl') || 'http://localhost:3003';
-  const socketUrl = `${backendUrl}/recruiter-monitor`;
+  const socketBaseUrl = backendUrl.replace(/\/api$/, '');
+  const socketUrl = `${socketBaseUrl}/recruiter-monitor`;
 
   socket = io(socketUrl, {
     auth: { token: context.token },

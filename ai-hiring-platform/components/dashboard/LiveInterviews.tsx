@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Video, User, ArrowRight, Loader2, Signal } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
+import { getFreshToken } from "@/lib/tokenManager"
 import { io, Socket } from "socket.io-client"
 
 interface ActiveInterview {
@@ -37,33 +38,40 @@ export default function LiveInterviews() {
 
         fetchActive()
 
-        // Socket connection
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003'
-        const s = io(`${backendUrl}/recruiter-monitor`, {
-            transports: ['websocket']
-        })
+        let activeSocket: any = null
 
-        s.on('connect', () => {
-            console.log('Socket: Connected to recruiter monitor')
-        })
-
-        s.on('interview:started', (data: ActiveInterview) => {
-            setActiveInterviews(prev => {
-                if (prev.find(i => i.interviewId === data.interviewId)) return prev
-                return [data, ...prev]
+        const connectSocket = async () => {
+            const token = await getFreshToken()
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003').replace(/\/api$/, '')
+            activeSocket = io(`${baseUrl}/recruiter-monitor`, {
+                auth: { token },
+                transports: ['websocket']
             })
-        })
 
-        s.on('interview:status', (data: { interviewId: string, status: string }) => {
-            if (data.status === 'completed' || data.status === 'terminated' || data.status === 'FAILED_INTERVIEW') {
-                setActiveInterviews(prev => prev.filter(i => i.interviewId !== data.interviewId))
-            }
-        })
+            activeSocket.on('connect', () => {
+                console.log('Socket: Connected to recruiter monitor')
+            })
 
-        setSocket(s)
+            activeSocket.on('interview:started', (data: ActiveInterview) => {
+                setActiveInterviews(prev => {
+                    if (prev.find(i => i.interviewId === data.interviewId)) return prev
+                    return [data, ...prev]
+                })
+            })
+
+            activeSocket.on('interview:status', (data: { interviewId: string, status: string }) => {
+                if (data.status === 'completed' || data.status === 'terminated' || data.status === 'FAILED_INTERVIEW') {
+                    setActiveInterviews(prev => prev.filter(i => i.interviewId !== data.interviewId))
+                }
+            })
+
+            setSocket(activeSocket)
+        }
+
+        connectSocket()
 
         return () => {
-            s.disconnect()
+            if (activeSocket) activeSocket.disconnect()
         }
     }, [])
 

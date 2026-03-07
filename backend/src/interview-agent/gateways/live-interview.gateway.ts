@@ -82,16 +82,19 @@ export class LiveInterviewGateway
   // --- BROADCAST HELPERS FOR SERVICES ---
 
   broadcastInterviewStarted(data: any) {
+    this.logger.log(`Broadcasting interview started: ${data.interviewId}`);
     this.server.emit('interview:started', data);
   }
 
   broadcastQuestion(interviewId: string, text: string) {
+    this.logger.debug(`Broadcasting question to interview:${interviewId}`);
     this.server
       .to(`interview:${interviewId}`)
       .emit('interview:question', { text, timestamp: new Date() });
   }
 
   broadcastAnswer(interviewId: string, text: string) {
+    this.logger.debug(`Broadcasting answer to interview:${interviewId}`);
     this.server
       .to(`interview:${interviewId}`)
       .emit('interview:answer', { text, timestamp: new Date() });
