@@ -3,6 +3,7 @@ import {
     NotFoundException,
     BadRequestException,
     ForbiddenException,
+    Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -33,6 +34,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class InterviewsService {
+    private readonly logger = new Logger(InterviewsService.name);
     constructor(
         @InjectRepository(Interview)
         private interviewsRepository: Repository<Interview>,
@@ -242,10 +244,10 @@ export class InterviewsService {
 
         // Generate token if it's the candidate requesting
         let interviewToken: string | undefined;
-        console.log(`[TokenDebug] Checking candidate matching: interview.candidate.userId=${interview.candidate?.userId} vs userId=${userId}`);
+        this.logger.debug(`[TokenDebug] Checking candidate matching: interview.candidate.userId=${interview.candidate?.userId} vs userId=${userId}`);
 
         if (userId && (interview.candidate?.userId === userId || interview.candidate?.user?.id === userId)) {
-            console.log(`[TokenDebug] Match found! Generating 1h interviewToken for candidate.`);
+            this.logger.log(`[TokenDebug] Match found! Generating 1h interviewToken for candidate.`);
             interviewToken = this.jwtService.sign({
                 sub: userId,
                 email: interview.candidate?.user?.email,
@@ -254,7 +256,7 @@ export class InterviewsService {
                 candidateId: interview.candidateId,
             }, { expiresIn: '1h' });
         } else {
-            console.log(`[TokenDebug] No match. userId=${userId}, interview.candidate.userId=${interview.candidate?.userId}`);
+            this.logger.debug(`[TokenDebug] No match. userId=${userId}, interview.candidate.userId=${interview.candidate?.userId}`);
         }
 
         return { ...interview, interviewToken };
@@ -286,6 +288,7 @@ export class InterviewsService {
             const jobRole = interview.job?.title || 'Unknown Role';
 
             console.log(`[LiveMonitor] Adding active interview: ${id} for ${candidateName}`);
+            this.logger.log(`[LiveMonitor] Adding active interview: ${id} for ${candidateName}`);
             this.liveInterviewService.addActiveInterview({
                 interviewId: id,
                 candidateName,
@@ -294,7 +297,7 @@ export class InterviewsService {
                 status: 'IN_PROGRESS',
             });
 
-            console.log(`[LiveMonitor] Broadcasting interview started: ${id}`);
+            this.logger.log(`[LiveMonitor] Broadcasting interview started: ${id}`);
             this.liveInterviewGateway.broadcastInterviewStarted({
                 interviewId: id,
                 candidateName,

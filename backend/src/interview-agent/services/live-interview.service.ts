@@ -13,23 +13,23 @@ export class LiveInterviewService {
   private readonly logger = new Logger(LiveInterviewService.name);
   private instanceId = Math.random().toString(36).substring(7);
 
-  // In-memory store for currently active interviews
-  private activeSessions = new Map<string, ActiveInterview>();
+  // In-memory store for currently active interviews - STATIC to survive multi-instantiation
+  private static activeSessions = new Map<string, ActiveInterview>();
 
   constructor() {
     this.logger.log(`LiveInterviewService initialized (Instance: ${this.instanceId})`);
   }
 
   addActiveInterview(data: ActiveInterview): void {
-    this.activeSessions.set(data.interviewId, data);
+    LiveInterviewService.activeSessions.set(data.interviewId, data);
     this.logger.log(
       `[${this.instanceId}] Added active interview to dashboard: ${data.interviewId} (${data.candidateName})`,
     );
   }
 
   removeActiveInterview(interviewId: string): void {
-    if (this.activeSessions.has(interviewId)) {
-      this.activeSessions.delete(interviewId);
+    if (LiveInterviewService.activeSessions.has(interviewId)) {
+      LiveInterviewService.activeSessions.delete(interviewId);
       this.logger.log(
         `Removed active interview from dashboard: ${interviewId}`,
       );
@@ -37,7 +37,7 @@ export class LiveInterviewService {
   }
 
   getActiveInterviews(): ActiveInterview[] {
-    const list = Array.from(this.activeSessions.values()).sort(
+    const list = Array.from(LiveInterviewService.activeSessions.values()).sort(
       (a, b) => b.startedAt.getTime() - a.startedAt.getTime(),
     );
     this.logger.log(`[${this.instanceId}] Fetching active interviews: count=${list.length}`);
