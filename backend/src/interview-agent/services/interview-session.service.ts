@@ -15,7 +15,7 @@ export class InterviewSessionService {
     @InjectRepository(Interview)
     private interviewsRepository: Repository<Interview>,
     private liveInterviewGateway: LiveInterviewGateway,
-  ) {}
+  ) { }
 
   async getInterview(id: string): Promise<Interview> {
     const interview = await this.interviewsRepository.findOne({
@@ -48,7 +48,7 @@ export class InterviewSessionService {
     await this.interviewsRepository.save(interview);
 
     // Broadcast to recruiter if observing
-    this.liveInterviewGateway.broadcastAnswer(id, question, answer);
+    this.liveInterviewGateway.broadcastAnswer(id, answer);
 
     return interview;
   }
