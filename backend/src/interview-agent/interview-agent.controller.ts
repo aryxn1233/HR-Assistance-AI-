@@ -48,7 +48,7 @@ export class InterviewAgentController {
     const user = req.user;
     if (!user || user.role !== 'recruiter') {
       throw new ForbiddenException(
-        'Only recruiters can view active interviews',
+        `Only recruiters can view active interviews. Your current role is: ${user?.role || 'unknown'}`,
       );
     }
     console.log(`[InterviewAgentController] getActiveInterviews hit by user: ${user.id} (${user.role})`);

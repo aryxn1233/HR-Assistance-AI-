@@ -33,6 +33,10 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       });
 
       console.log('Clerk token verified successfully for sub:', payload?.sub);
+      console.log('Clerk Metadata:', JSON.stringify({
+        public: payload?.publicMetadata,
+        unsafe: (payload as any).unsafeMetadata
+      }));
 
       if (!payload?.sub) {
         throw new UnauthorizedException('Invalid token payload');

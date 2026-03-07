@@ -11,7 +11,7 @@ export class AuthService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersRepository.findOne({
@@ -97,7 +97,10 @@ export class AuthService {
     if (!user) {
       // Default to candidate if not specified
       const role =
-        data.public_metadata?.role || data.role || UserRole.CANDIDATE;
+        data.public_metadata?.role ||
+        data.unsafe_metadata?.role ||
+        data.role ||
+        UserRole.CANDIDATE;
       // Generate a dummy email if none is provided to satisfy the unique constraint
       const finalEmail = userData.email || `${data.id}@clerk.local`;
       user = this.usersRepository.create({
