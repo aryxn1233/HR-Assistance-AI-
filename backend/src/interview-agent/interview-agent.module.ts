@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { Interview } from '../interviews/entities/interview.entity';
@@ -13,6 +13,7 @@ import { RecruiterControlService } from './services/recruiter-control.service';
 import { LiveInterviewGateway } from './gateways/live-interview.gateway';
 import { InterviewAgentController } from './interview-agent.controller';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([Interview, FallbackQuestion]),
@@ -30,4 +31,4 @@ import { InterviewAgentController } from './interview-agent.controller';
   ],
   exports: [InterviewAgentService, LiveInterviewService, LiveInterviewGateway],
 })
-export class InterviewAgentModule {}
+export class InterviewAgentModule { }

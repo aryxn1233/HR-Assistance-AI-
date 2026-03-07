@@ -20,6 +20,8 @@ export class LiveInterviewGateway
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected to monitor gateway: ${client.id}`);
+    const token = client.handshake.auth?.token;
+    this.logger.debug(`Connection auth token present: ${!!token}`);
   }
 
   handleDisconnect(client: Socket) {
@@ -34,7 +36,7 @@ export class LiveInterviewGateway
   ) {
     const room = `interview:${data.interviewId}`;
     client.join(room);
-    this.logger.log(`${data.role} joined room: ${room}`);
+    this.logger.log(`${data.role} (${client.id}) joined room: ${room}`);
     return { event: 'joined', room };
   }
 

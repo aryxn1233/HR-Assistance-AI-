@@ -279,6 +279,7 @@ export class InterviewsService {
                 : 'Applicant';
             const jobRole = interview.job?.title || 'Unknown Role';
 
+            console.log(`[LiveMonitor] Adding active interview: ${id} for ${candidateName}`);
             this.liveInterviewService.addActiveInterview({
                 interviewId: id,
                 candidateName,
@@ -287,6 +288,7 @@ export class InterviewsService {
                 status: 'IN_PROGRESS',
             });
 
+            console.log(`[LiveMonitor] Broadcasting interview started: ${id}`);
             this.liveInterviewGateway.broadcastInterviewStarted({
                 interviewId: id,
                 candidateName,
