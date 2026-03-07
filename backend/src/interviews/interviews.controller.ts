@@ -24,7 +24,8 @@ export class InterviewsController {
   @UseGuards(CombinedAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
-    return this.interviewsService.findOne(id, req.user?.userId);
+    console.log(`[ControllerDebug] findOne for ${id}, req.user:`, JSON.stringify(req.user));
+    return this.interviewsService.findOne(id, req.user?.userId || req.user?.id || req.user?.sub);
   }
 
   @UseGuards(CombinedAuthGuard)

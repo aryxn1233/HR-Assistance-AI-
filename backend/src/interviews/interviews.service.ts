@@ -232,6 +232,7 @@ export class InterviewsService {
     }
 
     async findOne(id: string, userId?: string): Promise<any> {
+        console.log(`[TokenDebug] findOne called for interview ${id} with userId ${userId}`);
         const interview = await this.interviewsRepository.findOne({
             where: { id },
             relations: ['candidate', 'candidate.user', 'job', 'questions', 'report'],
@@ -241,7 +242,10 @@ export class InterviewsService {
 
         // Generate token if it's the candidate requesting
         let interviewToken: string | undefined;
-        if (userId && interview.candidate?.user?.id === userId) {
+        console.log(`[TokenDebug] Checking candidate matching: interview.candidate.userId=${interview.candidate?.userId} vs userId=${userId}`);
+
+        if (userId && (interview.candidate?.userId === userId || interview.candidate?.user?.id === userId)) {
+            console.log(`[TokenDebug] Match found! Generating 1h interviewToken for candidate.`);
             interviewToken = this.jwtService.sign({
                 sub: userId,
                 email: interview.candidate?.user?.email,
@@ -249,6 +253,8 @@ export class InterviewsService {
                 interviewId: interview.id,
                 candidateId: interview.candidateId,
             }, { expiresIn: '1h' });
+        } else {
+            console.log(`[TokenDebug] No match. userId=${userId}, interview.candidate.userId=${interview.candidate?.userId}`);
         }
 
         return { ...interview, interviewToken };
