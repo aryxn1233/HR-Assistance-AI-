@@ -19,7 +19,7 @@ export class InterviewAgentController {
     private readonly recruiterControlService: RecruiterControlService,
     private readonly interviewAgentService: InterviewAgentService,
     private readonly liveInterviewService: LiveInterviewService,
-  ) {}
+  ) { }
 
   @Post(':id/terminate')
   async terminateInterview(@Param('id') id: string, @Request() req) {
@@ -51,6 +51,9 @@ export class InterviewAgentController {
         'Only recruiters can view active interviews',
       );
     }
-    return this.liveInterviewService.getActiveInterviews();
+    console.log(`[InterviewAgentController] getActiveInterviews hit by user: ${user.id} (${user.role})`);
+    const activeList = this.liveInterviewService.getActiveInterviews();
+    console.log(`[InterviewAgentController] returning ${activeList.length} active interviews`);
+    return activeList;
   }
 }

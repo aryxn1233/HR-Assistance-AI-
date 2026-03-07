@@ -85,6 +85,10 @@ export class LiveInterviewGateway
 
   broadcastInterviewStarted(data: any) {
     this.logger.log(`Broadcasting interview started: ${data.interviewId}`);
+    if (!this.server) {
+      this.logger.error('Socket.io server NOT initialized in LiveInterviewGateway!');
+      return;
+    }
     this.server.emit('interview:started', data);
   }
 
