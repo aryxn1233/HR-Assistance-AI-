@@ -76,6 +76,7 @@ function initSocketMonitoring() {
   socket.on('connect', () => {
     console.log('Socket: Connected for monitoring');
     socket.emit('join-room', { interviewId: context.interviewId, role: 'candidate' });
+    startRecruiterStream();
   });
 
   socket.on('recruiter-answer', async (data) => {
@@ -99,7 +100,34 @@ function initSocketMonitoring() {
     closePC();
     mainBtn.disabled = true;
     mainBtn.innerText = 'Interview Terminated';
+    setTimeout(() => { window.location.href = 'https://hr-assistance-ai.vercel.app/candidate/interviews'; }, 5000);
   });
+}
+
+async function startRecruiterStream() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+    recruiterPeerConnection = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    stream.getTracks().forEach(track => recruiterPeerConnection.addTrack(track, stream));
+
+    recruiterPeerConnection.onicecandidate = (event) => {
+      if (event.candidate && socket) {
+        socket.emit('ice-candidate', { interviewId: context.interviewId, candidate: event.candidate });
+      }
+    };
+
+    const offer = await recruiterPeerConnection.createOffer();
+    await recruiterPeerConnection.setLocalDescription(offer);
+
+    socket.emit('candidate-offer', { interviewId: context.interviewId, offer });
+    console.log('WebRTC: Offer sent to recruiter');
+  } catch (err) {
+    console.error('WebRTC: Failed to start recruiter stream', err);
+  }
 }
 
 async function startRecruiterSignaling() {

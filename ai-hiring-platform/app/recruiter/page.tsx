@@ -5,6 +5,7 @@ import { AIAnalyticsCharts } from "@/components/dashboard/AIAnalyticsCharts";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentCandidates } from "@/components/dashboard/RecentCandidates";
 import { Users, Video, Brain, TrendingUp, Loader2 } from "lucide-react";
+import LiveInterviews from "@/components/dashboard/LiveInterviews";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
 
@@ -82,6 +83,8 @@ export default function DashboardPage() {
           trend={metrics.trends?.score}
         />
       </div>
+
+      <LiveInterviews />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4 lg:col-span-7">
           <AIAnalyticsCharts />

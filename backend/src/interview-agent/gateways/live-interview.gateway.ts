@@ -12,8 +12,7 @@ import { Logger, UseGuards } from '@nestjs/common';
 
 @WebSocketGateway({ namespace: '/recruiter-monitor', cors: true })
 export class LiveInterviewGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -27,7 +26,7 @@ export class LiveInterviewGateway
     this.logger.log(`Client disconnected from monitor gateway: ${client.id}`);
   }
 
-  @SubscribeMessage('join-interview')
+  @SubscribeMessage('join-room')
   handleJoinRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody()
@@ -49,10 +48,9 @@ export class LiveInterviewGateway
     this.logger.debug(
       `Relaying WebRTC Offer for interview ${data.interviewId}`,
     );
-    // Send to everyone in room except sender (which targets the recruiter)
     client
       .to(`interview:${data.interviewId}`)
-      .emit('candidate-offer', data.offer);
+      .emit('candidate-offer', { offer: data.offer });
   }
 
   @SubscribeMessage('recruiter-answer')
@@ -63,10 +61,9 @@ export class LiveInterviewGateway
     this.logger.debug(
       `Relaying WebRTC Answer for interview ${data.interviewId}`,
     );
-    // Send back to the candidate
     client
       .to(`interview:${data.interviewId}`)
-      .emit('recruiter-answer', data.answer);
+      .emit('recruiter-answer', { answer: data.answer });
   }
 
   @SubscribeMessage('ice-candidate')
@@ -79,25 +76,25 @@ export class LiveInterviewGateway
     );
     client
       .to(`interview:${data.interviewId}`)
-      .emit('ice-candidate', data.candidate);
+      .emit('ice-candidate', { candidate: data.candidate });
   }
 
   // --- BROADCAST HELPERS FOR SERVICES ---
 
   broadcastInterviewStarted(data: any) {
-    this.server.to('/recruiter-monitor').emit('interview:started', data);
+    this.server.emit('interview:started', data);
   }
 
-  broadcastQuestion(interviewId: string, question: string) {
+  broadcastQuestion(interviewId: string, text: string) {
     this.server
       .to(`interview:${interviewId}`)
-      .emit('interview:question', { question, timestamp: new Date() });
+      .emit('interview:question', { text, timestamp: new Date() });
   }
 
-  broadcastAnswer(interviewId: string, question: string, answer: string) {
+  broadcastAnswer(interviewId: string, text: string) {
     this.server
       .to(`interview:${interviewId}`)
-      .emit('interview:answer', { question, answer, timestamp: new Date() });
+      .emit('interview:answer', { text, timestamp: new Date() });
   }
 
   broadcastStatus(interviewId: string, status: string) {
