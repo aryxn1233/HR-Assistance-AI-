@@ -62,9 +62,12 @@ export default function RecruiterMonitorPage() {
         fetchDetails()
 
         let activeSocket: any = null
+        let isMounted = true
 
         const connectSocket = async () => {
             const token = await getFreshToken()
+            if (!isMounted) return
+
             const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003').replace(/\/api$/, '')
             activeSocket = io(`${baseUrl}/recruiter-monitor`, {
                 auth: { token },
@@ -83,7 +86,7 @@ export default function RecruiterMonitorPage() {
                 })
 
                 pc.ontrack = (event) => {
-                    console.log('WebRTC: Received remote track')
+                    console.log('WebRTC: Received remote track', event.streams[0])
                     setRemoteStream(event.streams[0])
                 }
 
@@ -98,13 +101,17 @@ export default function RecruiterMonitorPage() {
                 await pc.setLocalDescription(answer)
 
                 activeSocket.emit('recruiter-answer', { interviewId, answer })
-                setPeerConnection(pc)
+                setPeerConnection(prev => {
+                    if (prev) prev.close()
+                    return pc
+                })
             })
 
             activeSocket.on('ice-candidate', async (data: any) => {
-                if (peerConnection) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
-                }
+                setPeerConnection(pc => {
+                    if (pc) pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(console.error)
+                    return pc
+                })
             })
 
             activeSocket.on('interview:question', (data: any) => {
@@ -130,8 +137,12 @@ export default function RecruiterMonitorPage() {
         connectSocket()
 
         return () => {
+            isMounted = false
             if (activeSocket) activeSocket.disconnect()
-            peerConnection?.close()
+            setPeerConnection(pc => {
+                if (pc) pc.close()
+                return null
+            })
         }
     }, [interviewId])
 

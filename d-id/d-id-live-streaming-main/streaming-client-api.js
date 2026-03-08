@@ -77,7 +77,7 @@ function initSocketMonitoring() {
   socket.on('connect', () => {
     console.log('Socket: Connected for monitoring');
     socket.emit('join-room', { interviewId: context.interviewId, role: 'candidate' });
-    startRecruiterStream();
+    startWebcamSharing();
   });
 
   socket.on('recruiter-answer', async (data) => {
@@ -105,7 +105,10 @@ function initSocketMonitoring() {
   });
 }
 
-async function startRecruiterStream() {
+let isWebcamShared = false;
+
+async function startWebcamSharing() {
+  if (isWebcamShared) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
@@ -125,38 +128,10 @@ async function startRecruiterStream() {
     await recruiterPeerConnection.setLocalDescription(offer);
 
     socket.emit('candidate-offer', { interviewId: context.interviewId, offer });
-    console.log('WebRTC: Offer sent to recruiter');
+    console.log('WebRTC: Candidate offer sent to recruiter successfully');
+    isWebcamShared = true;
   } catch (err) {
-    console.error('WebRTC: Failed to start recruiter stream', err);
-  }
-}
-
-async function startRecruiterSignaling() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    recruiterPeerConnection = new RTCPeerConnection();
-
-    stream.getTracks().forEach(track => recruiterPeerConnection.addTrack(track, stream));
-
-    recruiterPeerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('ice-candidate', {
-          interviewId: context.interviewId,
-          candidate: event.candidate
-        });
-      }
-    };
-
-    const offer = await recruiterPeerConnection.createOffer();
-    await recruiterPeerConnection.setLocalDescription(offer);
-
-    socket.emit('candidate-offer', {
-      interviewId: context.interviewId,
-      offer
-    });
-    console.log('Socket: Sent candidate offer to recruiter');
-  } catch (err) {
-    console.warn('Failed to start webcam for recruiter monitoring:', err);
+    console.error('WebRTC: Failed to start webcam sharing for recruiter monitoring:', err);
   }
 }
 
@@ -535,9 +510,6 @@ function onStreamEvent(message) {
         processChatMessage(null, true); // First Question
         userInputArea.classList.remove('hidden');
         document.getElementById('end-interview-btn').classList.remove('hidden');
-
-        // Start sharing webcam with recruiter when interview actually goes live
-        startRecruiterSignaling();
       }, 1000);
     } else if (event === 'stream/started') {
       isAISpeaking = true;
