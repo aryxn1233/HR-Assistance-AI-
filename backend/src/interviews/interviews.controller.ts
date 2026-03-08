@@ -50,6 +50,7 @@ export class InterviewsController {
     @Body('streamId') streamId: string,
     @Body('sessionId') sessionId: string,
   ) {
+    console.log(`[InterviewsController] START SESSION hit for interview: ${id}`);
     return this.interviewsService.startSession(id, streamId, sessionId);
   }
 
