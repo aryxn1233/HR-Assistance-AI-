@@ -37,6 +37,10 @@ export class LiveInterviewGateway
     const room = `interview:${data.interviewId}`;
     client.join(room);
     this.logger.log(`${data.role} (${client.id}) joined room: ${room}`);
+
+    // Notify others in the room so they can initiate WebRTC
+    client.to(room).emit('user-joined', { role: data.role });
+
     return { event: 'joined', room };
   }
 
