@@ -329,6 +329,16 @@ async function processChatMessage(message, isStart = false) {
 
     // Backend automatically triggers D-ID speech injection
     // Wait for stream/started and stream/done over the WebRTC DataChannel.
+
+    // Safety fallback: If backend D-ID trigger fails (e.g. 402 credits error), unlock the microphone anyway
+    setTimeout(() => {
+      if (!isAISpeaking && isInterviewStarted && !isRecognizing) {
+        console.warn('D-ID Stream failed to start natively. Unlocking microphone as fallback.');
+        mainBtn.innerText = 'Interview Live';
+        autoStartListening();
+      }
+    }, 5000);
+
   } catch (err) {
     console.error('Chat error:', err);
     addMessageToChat('interviewer', "I'm having a connection glitch with my cognitive center. Could you say that again?");

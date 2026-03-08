@@ -66,11 +66,11 @@ export class DIdService {
     // D-ID API expects a flat object with candidate, sdpMid, sdpMLineIndex, and session_id
     const body = candidate
       ? {
-          candidate: candidate.candidate,
-          sdpMid: candidate.sdpMid,
-          sdpMLineIndex: candidate.sdpMLineIndex,
-          session_id: sessionId,
-        }
+        candidate: candidate.candidate,
+        sdpMid: candidate.sdpMid,
+        sdpMLineIndex: candidate.sdpMLineIndex,
+        session_id: sessionId,
+      }
       : { session_id: sessionId };
 
     return this.requestWithRetry(
@@ -91,17 +91,17 @@ export class DIdService {
           {
             script: {
               type: 'text',
-              subtitles: 'false',
+              subtitles: false,
               provider: {
                 type: 'microsoft',
                 voice_id: 'en-US-AndrewNeural',
               },
-              ssml: 'false',
+              ssml: false,
               input: text,
             },
             config: {
-              fluent: 'false',
-              pad_audio: '0.0',
+              fluent: false,
+              pad_audio: 0.0,
               stitch: true,
             },
             session_id: sessionId,
