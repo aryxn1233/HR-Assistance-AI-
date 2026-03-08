@@ -63,61 +63,62 @@ export class AuthService {
   }
 
   async syncClerkUser(data: any): Promise<User | null> {
-    // Find existing user by Clerk ID (passed as data.id from the strategy)
-    if (!data.id) return null;
+    const { id: clerkId } = data;
+    if (!clerkId) {
+      console.warn('[ClerkSync] No Clerk ID provided in data');
+      return null;
+    }
+
+    const email = data.email || data.email_addresses?.[0]?.email_address;
+    console.log(`[ClerkSync] Starting sync for ClerkID: ${clerkId}, Email: ${email}`);
 
     let user = await this.usersRepository.findOne({
-      where: { clerkId: data.id },
+      where: { clerkId: clerkId },
     });
 
+    if (user) {
+      console.log(`[ClerkSync] Found existing user by ClerkID: ${user.id}`);
+    }
+
     // If not found by clerkId, try to find by email and link them mapping legacy users
-    if (!user && data.email_addresses?.[0]?.email_address) {
-      const email = data.email_addresses[0].email_address;
+    if (!user && email) {
       user = await this.usersRepository.findOne({ where: { email } });
       if (user) {
-        user.clerkId = data.id;
+        console.log(`[ClerkSync] Found legacy user by email: ${email}. Linking to ClerkID: ${clerkId}`);
+        user.clerkId = clerkId;
         await this.usersRepository.save(user);
       }
     }
 
     const userData: Partial<User> = {
-      clerkId: data.id,
+      clerkId: clerkId,
       firstName: data.first_name || data.firstName || '',
       lastName: data.last_name || data.lastName || '',
-      avatarUrl:
-        data.image_url || data.avatarUrl || data.profile_image_url || null,
+      avatarUrl: data.image_url || data.avatarUrl || data.profile_image_url || null,
+      email: email || user?.email || `${clerkId}@clerk.local`,
     };
 
-    // Only update email if it was provided
-    const email = data.email || data.email_addresses?.[0]?.email_address;
-    if (email) {
-      userData.email = email;
-    }
-
     if (!user) {
-      // Default to candidate if not specified
+      console.log(`[ClerkSync] No user found. Creating new user record for ${userData.email}`);
       const role =
         data.public_metadata?.role ||
         data.unsafe_metadata?.role ||
         data.role ||
         UserRole.CANDIDATE;
-      // Generate a dummy email if none is provided to satisfy the unique constraint
-      const finalEmail = userData.email || `${data.id}@clerk.local`;
+
       user = this.usersRepository.create({
-        clerkId: data.id,
-        email: finalEmail,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        avatarUrl: userData.avatarUrl,
+        ...userData,
         role: role as UserRole,
         passwordHash: 'CLERK_MANAGED',
       });
     } else {
-      // Update existing user with latest info
+      console.log(`[ClerkSync] Updating existing user: ${user.id}`);
       Object.assign(user, userData);
     }
 
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+    console.log(`[ClerkSync] Successfully synchronized user: ${savedUser.email} (ID: ${savedUser.id}, Role: ${savedUser.role})`);
+    return savedUser;
   }
 
   async updateUser(userId: string, data: any) {
