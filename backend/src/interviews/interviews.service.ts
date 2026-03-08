@@ -287,6 +287,16 @@ export class InterviewsService {
                 : 'Applicant';
             const jobRole = interview.job?.title || 'Unknown Role';
 
+            // Wipe transcript so recruiter sees a fresh session
+            await this.interviewsRepository.update(id, {
+                transcript: [],
+                history: [],
+                currentQuestionIndex: 0
+            });
+            interview.transcript = [];
+            interview.history = [];
+            interview.currentQuestionIndex = 0;
+
             console.log(`[LiveMonitor] Adding active interview: ${id} for ${candidateName}`);
             this.logger.log(`[LiveMonitor] Adding active interview: ${id} for ${candidateName}`);
             this.liveInterviewService.addActiveInterview({
@@ -347,14 +357,14 @@ export class InterviewsService {
         this.liveInterviewGateway.broadcastQuestion(interview.id, questionText);
 
         // Update Interview state
-        // When startSession is called, it means a completely fresh candidate connection.
-        // We wipe the old transcript array so the recruiter doesn't see "old chats" from previous aborted attempts.
         const newTranscript = [
-            { speaker: 'AI', message: questionText, timestamp: new Date() },
-        ] as any;
+            ...(interview.transcript || []),
+            { speaker: 'AI' as const, message: questionText, timestamp: new Date() },
+        ];
         const newHistory = [
+            ...(interview.history || []),
             { role: 'ai', content: questionText },
-        ] as any;
+        ];
 
         await this.interviewsRepository.update(interview.id, {
             transcript: newTranscript,
