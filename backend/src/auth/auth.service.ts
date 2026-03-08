@@ -3,15 +3,27 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { User, UserRole } from './user.entity';
+import { Candidate } from '../candidates/candidate.entity';
+import { createClerkClient } from '@clerk/backend';
 
 @Injectable()
 export class AuthService {
+  private clerkClient;
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Candidate)
+    private candidatesRepository: Repository<Candidate>,
     private jwtService: JwtService,
-  ) { }
+    private configService: ConfigService,
+  ) {
+    this.clerkClient = createClerkClient({
+      secretKey: configService.get<string>('CLERK_SECRET_KEY')
+    });
+  }
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersRepository.findOne({
@@ -69,7 +81,26 @@ export class AuthService {
       return null;
     }
 
-    const email = data.email || data.email_addresses?.[0]?.email_address;
+    let email = data.email || data.email_addresses?.[0]?.email_address;
+    let firstName = data.first_name || data.firstName || '';
+    let lastName = data.last_name || data.lastName || '';
+    let publicMetadata = data.public_metadata || {};
+
+    // If email is missing (common with Clerk JWTs), fetch full user from Clerk API
+    if (!email) {
+      try {
+        console.log(`[ClerkSync] Email missing in payload. Fetching full user from Clerk API for ${clerkId}`);
+        const clerkUser = await this.clerkClient.users.getUser(clerkId);
+        email = clerkUser.emailAddresses?.[0]?.emailAddress;
+        firstName = clerkUser.firstName || firstName;
+        lastName = clerkUser.lastName || lastName;
+        publicMetadata = clerkUser.publicMetadata || publicMetadata;
+        console.log(`[ClerkSync] Fetched email from Clerk API: ${email}`);
+      } catch (err) {
+        console.error(`[ClerkSync] Failed to fetch user from Clerk API: ${err.message}`);
+      }
+    }
+
     console.log(`[ClerkSync] Starting sync for ClerkID: ${clerkId}, Email: ${email}`);
 
     let user = await this.usersRepository.findOne({
@@ -86,14 +117,13 @@ export class AuthService {
       if (user) {
         console.log(`[ClerkSync] Found legacy user by email: ${email}. Linking to ClerkID: ${clerkId}`);
         user.clerkId = clerkId;
-        await this.usersRepository.save(user);
       }
     }
 
     const userData: Partial<User> = {
       clerkId: clerkId,
-      firstName: data.first_name || data.firstName || '',
-      lastName: data.last_name || data.lastName || '',
+      firstName: firstName,
+      lastName: lastName,
       avatarUrl: data.image_url || data.avatarUrl || data.profile_image_url || null,
       email: email || user?.email || `${clerkId}@clerk.local`,
     };
@@ -101,7 +131,7 @@ export class AuthService {
     if (!user) {
       console.log(`[ClerkSync] No user found. Creating new user record for ${userData.email}`);
       const role =
-        data.public_metadata?.role ||
+        publicMetadata?.role ||
         data.unsafe_metadata?.role ||
         data.role ||
         UserRole.CANDIDATE;
@@ -118,6 +148,23 @@ export class AuthService {
 
     const savedUser = await this.usersRepository.save(user);
     console.log(`[ClerkSync] Successfully synchronized user: ${savedUser.email} (ID: ${savedUser.id}, Role: ${savedUser.role})`);
+
+    // ENSURE CANDIDATE PROFILE EXISTS
+    if (savedUser.role === UserRole.CANDIDATE || (savedUser.role as any) === 'candidate') {
+      const candidateExists = await this.candidatesRepository.findOne({
+        where: { userId: savedUser.id }
+      });
+      if (!candidateExists) {
+        console.log(`[ClerkSync] Creating missing candidate profile for user: ${savedUser.id}`);
+        const newCandidate = this.candidatesRepository.create({
+          userId: savedUser.id,
+          location: 'Remote',
+          resumeUrl: 'pending_upload',
+        });
+        await this.candidatesRepository.save(newCandidate);
+      }
+    }
+
     return savedUser;
   }
 
