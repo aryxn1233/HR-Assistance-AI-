@@ -347,14 +347,14 @@ export class InterviewsService {
         this.liveInterviewGateway.broadcastQuestion(interview.id, questionText);
 
         // Update Interview state
+        // When startSession is called, it means a completely fresh candidate connection.
+        // We wipe the old transcript array so the recruiter doesn't see "old chats" from previous aborted attempts.
         const newTranscript = [
-            ...(interview.transcript || []),
-            { speaker: 'AI' as const, message: questionText, timestamp: new Date() },
-        ];
+            { speaker: 'AI', message: questionText, timestamp: new Date() },
+        ] as any;
         const newHistory = [
-            ...(interview.history || []),
             { role: 'ai', content: questionText },
-        ];
+        ] as any;
 
         await this.interviewsRepository.update(interview.id, {
             transcript: newTranscript,

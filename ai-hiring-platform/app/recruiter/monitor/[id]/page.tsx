@@ -6,7 +6,6 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
     Video,
     MessageSquare,
@@ -290,7 +289,7 @@ export default function RecruiterMonitorPage() {
                         <Badge variant="outline" className="rounded-full border-white/10 text-slate-400">Real-time sync</Badge>
                     </div>
 
-                    <ScrollArea className="flex-1 p-8">
+                    <div className="flex-1 overflow-y-auto p-8 pb-32">
                         <div className="space-y-8">
                             {messages.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center p-20 text-center space-y-4 opacity-30">
@@ -321,7 +320,7 @@ export default function RecruiterMonitorPage() {
                             )}
                             <div ref={scrollRef} />
                         </div>
-                    </ScrollArea>
+                    </div>
                 </aside>
             </main>
         </div>
