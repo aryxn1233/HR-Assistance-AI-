@@ -11,7 +11,7 @@ export class InterviewAgentService {
     private openAiManager: OpenAiManagerService,
     private questionFallback: QuestionFallbackService,
     private sessionService: InterviewSessionService,
-  ) {}
+  ) { }
 
   private isSkipResponse(answer: string): boolean {
     if (!answer || answer.trim() === '') return true;
@@ -62,14 +62,8 @@ export class InterviewAgentService {
       }
     }
 
-    // Add answer to transcript
-    if (lastQuestion) {
-      interview = await this.sessionService.addTranscriptEntry(
-        id,
-        lastQuestion,
-        answer,
-      );
-    }
+    // Note: The candidate's answer was already appended to `interview.transcript`
+    // by InterviewsService before calling this method.
 
     const nextQuestion = await this.generateNextQuestion(id, interview);
     await this.sessionService.logQuestion(id, nextQuestion);
@@ -101,20 +95,27 @@ export class InterviewAgentService {
       role: 'system' | 'user' | 'assistant';
       content: string;
     }[] = [
-      {
-        role: 'system',
-        content: `You are an AI technical interviewer. Ask one question at a time.
+        {
+          role: 'system',
+          content: `You are an AI technical interviewer. Ask one question at a time.
 Verify the candidate's last answer. Generate the next logical question to assess their technical knowledge, reasoning ability, and real project experience for a ${jobRole} role.
 Do not reveal answers. Do not give hints. Do not ask multiple questions.`,
-      },
-    ];
+        },
+      ];
 
     for (const entry of transcript) {
-      if (entry.question) {
-        history.push({ role: 'assistant', content: entry.question });
-      }
-      if (entry.answer) {
-        history.push({ role: 'user', content: entry.answer });
+      if (entry.speaker === 'AI') {
+        history.push({ role: 'assistant', content: entry.message });
+      } else if (entry.speaker === 'Candidate') {
+        history.push({ role: 'user', content: entry.message });
+      } else {
+        // Fallback for previous legacy transcript format
+        if (entry.question) {
+          history.push({ role: 'assistant', content: entry.question });
+        }
+        if (entry.answer) {
+          history.push({ role: 'user', content: entry.answer });
+        }
       }
     }
 

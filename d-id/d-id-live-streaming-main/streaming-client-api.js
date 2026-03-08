@@ -327,41 +327,11 @@ async function processChatMessage(message, isStart = false) {
 
     addMessageToChat('interviewer', responseText);
 
-    // Explicitly ensure video is unmuted before starting stream
-    streamVideoElement.muted = false;
-
-    console.log('D-ID: Triggering startStreamWithScript for response text...');
-    const streamRes = await startStreamWithScript({
-      type: 'text',
-      provider: { type: 'microsoft', voice_id: 'en-US-AndrewNeural' },
-      input: responseText
-    });
-    console.log('D-ID: startStreamWithScript returned status:', streamRes?.status);
-
-    if (streamRes && streamRes.status >= 400) {
-      const errDetails = await streamRes.json().catch(() => ({}));
-      console.error('D-ID Speaking Error:', streamRes.status, errDetails);
-      if (streamRes.status === 401) {
-        addMessageToChat('interviewer', "System Error: Your D-ID API Key appears to be invalid (401). Please verify it in api.json.");
-      } else if (streamRes.status === 402) {
-        addMessageToChat('interviewer', "System Error: Insufficient Credits (402). Your D-ID account has run out of video generation credits.");
-      } else if (streamRes.status === 403) {
-        addMessageToChat('interviewer', "System Error: Access Forbidden (403). This voice or service might not be available on your current plan.");
-      } else {
-        addMessageToChat('interviewer', `System Error: D-ID returned ${streamRes.status}. Check console for details.`);
-      }
-    } else {
-      // AI started speaking
-      isAISpeaking = true;
-      if (recognition && isRecognizing) recognition.stop();
-      mainBtn.innerText = 'AI Speaking...';
-      mainBtn.classList.remove('is-listening');
-    }
-
+    // Backend automatically triggers D-ID speech injection
+    // Wait for stream/started and stream/done over the WebRTC DataChannel.
   } catch (err) {
     console.error('Chat error:', err);
     addMessageToChat('interviewer', "I'm having a connection glitch with my cognitive center. Could you say that again?");
-  } finally {
     if (!isAISpeaking) {
       mainBtn.innerText = 'Interview Live';
     }
