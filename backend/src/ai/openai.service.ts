@@ -162,10 +162,19 @@ Return JSON only in this format:
   async evaluateAnswer(
     question: string,
     answer: string,
-  ): Promise<{ score: number; feedback: string }> {
+  ): Promise<{
+    technicalScore: number;
+    accuracyScore: number;
+    communicationScore: number;
+    confidenceScore: number;
+    feedback: string;
+  }> {
     const systemPrompt = `You are an expert technical interviewer. Evaluate the candidate's answer to the question.
      Return the result in JSON format with:
-     - score (number 0-10)
+     - technicalScore (number 0-10)
+     - accuracyScore (number 0-10)
+     - communicationScore (number 0-10)
+     - confidenceScore (number 0-10)
      - feedback (string, constructive feedback)
      Output ONLY valid JSON.`;
 
@@ -178,7 +187,13 @@ Return JSON only in this format:
         .trim();
       return JSON.parse(cleanJson);
     } catch (e) {
-      return { score: 0, feedback: 'Error evaluating answer' };
+      return {
+        technicalScore: 0,
+        accuracyScore: 0,
+        communicationScore: 0,
+        confidenceScore: 0,
+        feedback: 'Error evaluating answer',
+      };
     }
   }
 

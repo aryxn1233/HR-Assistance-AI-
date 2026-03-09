@@ -17,7 +17,6 @@ import {
     InterviewReport,
     HiringRecommendation,
 } from './entities/interview-report.entity';
-import { GeminiService } from '../gemini/gemini.service';
 import { OpenAIService } from '../ai/openai.service';
 import {
     Application,
@@ -48,7 +47,6 @@ export class InterviewsService {
         private applicationsRepository: Repository<Application>,
         @InjectRepository(Candidate)
         private candidatesRepository: Repository<Candidate>,
-        private geminiService: GeminiService,
         private openAIService: OpenAIService,
         private didService: DIdService,
         private didSessionManager: DIdSessionManager,
@@ -434,12 +432,12 @@ export class InterviewsService {
         // Evaluate Answer
         let evaluation;
         try {
-            evaluation = await this.geminiService.evaluateAnswer(
+            evaluation = await this.openAIService.evaluateAnswer(
                 currentQuestion.questionText,
                 answerText,
             );
         } catch (e) {
-            console.error('Gemini evaluation failed. Continuing with fallback zeros.', e);
+            console.error('OpenAI evaluation failed. Continuing with fallback zeros.', e);
             evaluation = {
                 technicalScore: 0,
                 accuracyScore: 0,

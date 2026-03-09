@@ -389,11 +389,17 @@ function initRecognition() {
       accumulatedTranscript += final;
     }
 
+    const currentText = (accumulatedTranscript + " " + interim).trim();
+    if (currentText) {
+      document.getElementById('chat-input').value = currentText;
+    }
+
     // Custom 4-second silence detection
     silenceTimer = setTimeout(async () => {
-      const finalResp = accumulatedTranscript.trim() || interim.trim();
+      const finalResp = (accumulatedTranscript + " " + interim).trim();
       if (finalResp.length > 2) {
         console.log('STT: Silence detected, submitting:', finalResp);
+        document.getElementById('chat-input').value = '';
         await processChatMessage(finalResp);
       }
     }, 4000);
