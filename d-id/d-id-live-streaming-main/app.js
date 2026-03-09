@@ -198,146 +198,37 @@ app.post('/start-interview', async (req, res) => {
   }
 });
 
-// --- Keyword-Matching Fallback Algorithm ---
-function generateReportFallback(history) {
-  const userText = history
-    .filter(m => m.role === 'user')
-    .map(m => m.text)
-    .join(' ');
+app.post('/end-interview', async (req, res) => {
+  const { interviewId, token } = req.body;
 
-  const skills = {
-    frontend: ['react', 'vue', 'angular', 'html', 'css', 'javascript', 'typescript', 'tailwind', 'nextjs', 'redux'],
-    backend: ['node', 'express', 'nestjs', 'python', 'django', 'flask', 'java', 'spring', 'go', 'php', 'laravel'],
-    database: ['sql', 'postgres', 'postgresql', 'mongodb', 'mysql', 'redis', 'prisma', 'orm'],
-    cloud: ['aws', 'azure', 'googl', 'cloud', 'docker', 'kubernetes', 'cicd', 'jenkins', 'github actions', 'devops'],
-    concepts: ['async', 'promise', 'rest', 'api', 'oops', 'design pattern', 'architecture', 'scalability', 'testing', 'jest']
-  };
+  if (!interviewId || !token) {
+    return res.status(400).json({ error: 'Missing interviewId or token' });
+  }
 
-  let foundSkills = [];
-  let score = 20; // Base participation score
+  try {
+    const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:3003';
+    console.log(`[D-ID Proxy] Finishing interview securely on backend for ID: ${interviewId}`);
 
-  Object.entries(skills).forEach(([category, variants]) => {
-    variants.forEach(variant => {
-      const regex = new RegExp(`\\b${variant}\\b`, 'gi');
-      if (regex.test(userText)) {
-        foundSkills.push(variant.charAt(0).toUpperCase() + variant.slice(1));
-        score += 8;
+    const finishResponse = await fetch(`${backendUrl}/interviews/${interviewId}/finish`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       }
     });
-  });
 
-  // Cap score at 100
-  score = Math.min(score, 98);
-
-  const strengths = foundSkills.length > 0 ? foundSkills.slice(0, 5) : ["General communication"];
-  const fit = score > 60 ? "Strong Candidate" : (score > 40 ? "Potential Fit" : "Needs Improvement");
-
-  const report = `
-INTERVIEW EVALUATION (Deterministic Fallback)
-
-Score: ${score}
-Feedback: During the session, the candidate demonstrated knowledge in several technical areas. Based on the transcript analysis, they showed familiarity with ${foundSkills.slice(0, 3).join(', ') || 'software development concepts'}. The candidate is currently rated as a "${fit}".
-
-Strengths:
-- Mentioned ${strengths.join(', ')}
-- Participated actively in all questions
-- Professional tone throughout
-
-Areas for Improvement:
-- Could provide more specific examples of architectural decisions
-- Expand on ${Object.keys(skills).filter(c => !foundSkills.some(fs => skills[c].includes(fs.toLowerCase()))).slice(0, 2).join(' and ')} concepts
-  `;
-
-  const reportText = report.trim();
-  const summary = extractPlainTextSection(reportText, 'Feedback');
-  const strengthsMatched = extractPlainTextSection(reportText, 'Strengths').split('\n-').map(s => s.replace(/^- /, '').trim()).filter(Boolean);
-  const areasMatched = extractPlainTextSection(reportText, 'Areas for Improvement').split('\n-').map(s => s.replace(/^- /, '').trim()).filter(Boolean);
-
-  return {
-    text: reportText,
-    score: score,
-    summary: summary,
-    strengths: strengthsMatched,
-    weaknesses: areasMatched
-  };
-}
-
-// Helper to extract sections from plain text report (mirrors frontend logic)
-function extractPlainTextSection(text, title) {
-  const regex = new RegExp(`${title}:\\s*([\\s\\S]*?)(?=\\n\\n|\\nStrengths:|\\nAreas|$)`, 'i');
-  const match = text.match(regex);
-  return match ? match[1].trim() : "";
-}
-
-app.post('/generate-report', async (req, res) => {
-  const { history, applicationId, token } = req.body;
-  if (!history || history.length === 0) {
-    return res.status(400).json({ error: 'No history provided' });
-  }
-
-  let finalReport;
-  try {
-    const historyText = history.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n');
-    const prompt = `You are an Expert Technical Recruiter. Analyze the following interview transcript and provide a detailed report.
-    
-    Conversation History:
-    ${historyText}
-
-    Your report MUST follow this exact format:
-    Score: [Number from 0 to 100]
-    Feedback: [3-4 sentences summarizing technical performance and communication]
-    Strengths: [Bullet points of what they did well]
-    Areas for Improvement: [Bullet points of what to work on]
-
-    Keep it professional and constructive.`;
-
-    const responseText = await generateWithRetry(prompt, 2, 1000);
-
-    // Extract score from text if possible, default to 70
-    const scoreMatch = responseText.match(/Score:\s*(\d+)/i);
-    const score = scoreMatch ? parseInt(scoreMatch[1]) : 70;
-
-    finalReport = {
-      text: responseText,
-      score: score,
-      summary: extractPlainTextSection(responseText, 'Feedback'),
-      strengths: extractPlainTextSection(responseText, 'Strengths').split('\n-').map(s => s.replace(/^- /, '').trim()).filter(Boolean),
-      weaknesses: extractPlainTextSection(responseText, 'Areas for Improvement').split('\n-').map(s => s.replace(/^- /, '').trim()).filter(Boolean)
-    };
-  } catch (err) {
-    console.error('AI Report generation failed, using fallback:', err.message);
-    finalReport = generateReportFallback(history);
-  }
-
-  // --- Dashboard Synchronization ---
-  if (applicationId && token) {
-    try {
-      console.log(`Syncing score ${finalReport.score} for application ${applicationId}...`);
-      const targetUrl = `${process.env.BACKEND_URL || 'http://127.0.0.1:3003'}/interviews/application/${applicationId}/submit-score`;
-      const syncResponse = await fetch(targetUrl, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          interviewScore: finalReport.score,
-          feedback: finalReport
-        })
-      });
-
-      if (!syncResponse.ok) {
-        const errText = await syncResponse.text();
-        console.error('Main Backend Sync Failed:', syncResponse.status, errText);
-      } else {
-        console.log('Successfully synced score with main dashboard');
-      }
-    } catch (syncErr) {
-      console.error('Network Error during dashboard sync:', syncErr.message);
+    if (!finishResponse.ok) {
+      const errText = await finishResponse.text();
+      console.error('Backend finish failed:', finishResponse.status, errText);
+      return res.status(finishResponse.status).json({ error: 'Backend finish request failed', details: errText });
     }
-  }
 
-  res.json(finalReport);
+    const data = await finishResponse.json();
+    return res.json(data);
+  } catch (err) {
+    console.error('Error proxying end-interview:', err);
+    res.status(500).json({ error: 'Internal server error while ending interview' });
+  }
 });
 
 const server = http.createServer(app);

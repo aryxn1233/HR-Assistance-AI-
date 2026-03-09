@@ -561,15 +561,13 @@ endInterviewBtn.onclick = async () => {
   reportScore.innerText = "--";
 
   try {
-    const response = await fetch(`https://hr-assistance-ai.onrender.com/generate-report`, {
+    const response = await fetch(`${window.location.origin}/end-interview`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${context.token}`
       },
       body: JSON.stringify({
-        history: conversationHistory,
-        applicationId: context.applicationId,
+        interviewId: context.interviewId,
         token: context.token
       })
     });
@@ -587,7 +585,7 @@ endInterviewBtn.onclick = async () => {
     document.getElementById('comm-score-val').innerText = `${analysis.communication_score || 0}/10`;
 
     // Summary
-    document.getElementById('summary-text').innerText = analysis.summary || report.text || "Interview successfully analyzed.";
+    document.getElementById('summary-text').innerText = analysis.summary || analysis.detailed_feedback || report.text || "Interview successfully analyzed.";
 
     // Strengths
     const strengthsList = document.getElementById('strengths-list');
