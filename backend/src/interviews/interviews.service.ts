@@ -399,7 +399,7 @@ export class InterviewsService {
         // Find current question
         const questions = await this.questionsRepository.find({
             where: { interviewId: id },
-            order: { orderNumber: 'DESC' },
+            order: { createdAt: 'DESC' },
             take: 1,
         });
 
@@ -409,25 +409,7 @@ export class InterviewsService {
 
         const currentQuestion = questions[0];
 
-        // Evaluate Answer
-        const evaluation = await this.geminiService.evaluateAnswer(
-            currentQuestion.questionText,
-            answerText,
-        );
-
-        // Save Answer
-        const answer = this.answersRepository.create({
-            questionId: currentQuestion.id,
-            transcript: answerText,
-            technicalScore: evaluation.technicalScore,
-            accuracyScore: evaluation.accuracyScore,
-            communicationScore: evaluation.communicationScore,
-            confidenceScore: evaluation.confidenceScore,
-            feedback: evaluation.feedback,
-        });
-        await this.answersRepository.save(answer);
-
-        // Update Interview Transcript — use update() not save() to avoid TypeORM cascade issues
+        // Optimistically record transcript and broadcast to recruiter before doing heavy AI evaluation
         const updatedTranscript = [
             ...(interview.transcript || []),
             {
@@ -446,14 +428,44 @@ export class InterviewsService {
             ],
         });
 
+        // Live Monitoring Broadcast
+        this.liveInterviewGateway.broadcastAnswer(id, answerText);
+
+        // Evaluate Answer
+        let evaluation;
+        try {
+            evaluation = await this.geminiService.evaluateAnswer(
+                currentQuestion.questionText,
+                answerText,
+            );
+        } catch (e) {
+            console.error('Gemini evaluation failed. Continuing with fallback zeros.', e);
+            evaluation = {
+                technicalScore: 0,
+                accuracyScore: 0,
+                communicationScore: 0,
+                confidenceScore: 0,
+                feedback: 'Evaluation failed due to an error.',
+            };
+        }
+
+        // Save Answer
+        const answer = this.answersRepository.create({
+            questionId: currentQuestion.id,
+            transcript: answerText,
+            technicalScore: evaluation.technicalScore,
+            accuracyScore: evaluation.accuracyScore,
+            communicationScore: evaluation.communicationScore,
+            confidenceScore: evaluation.confidenceScore,
+            feedback: evaluation.feedback,
+        });
+        await this.answersRepository.save(answer);
+
         // Trigger Smart Agent Step
         const agentResult = await this.interviewAgentService.processAnswer(
             id,
             answerText,
         );
-
-        // Live Monitoring Broadcast
-        this.liveInterviewGateway.broadcastAnswer(id, answerText);
 
         if (
             agentResult.status === InterviewStatus.FAILED_INTERVIEW ||
