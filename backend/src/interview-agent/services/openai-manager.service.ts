@@ -67,7 +67,7 @@ export class OpenAiManagerService {
 
     try {
       const response = await openAi.chat.completions.create({
-        model: 'gpt-4-turbo-preview', // Or whatever production model
+        model: 'gpt-4o-mini', // Changed from gpt-4-turbo-preview to prevent 404 on low-tier keys
         messages: history,
         max_tokens: 150,
         temperature: 0.7,
@@ -104,7 +104,7 @@ export class OpenAiManagerService {
 
     try {
       const response = await openAi.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
