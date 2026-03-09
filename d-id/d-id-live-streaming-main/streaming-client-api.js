@@ -117,7 +117,20 @@ let isWebcamShared = false;
 
 async function startWebcamSharing() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    let stream;
+    try {
+      // First try to get both video and audio
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    } catch (vidErr) {
+      console.warn('WebRTC: Could not access camera (might be used by another app). Trying audio only.', vidErr);
+      try {
+        // Fallback to audio only
+        stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+      } catch (audErr) {
+        console.error('WebRTC: Failed to access both camera and microphone.', audErr);
+        throw audErr;
+      }
+    }
 
     if (recruiterPeerConnection) {
       recruiterPeerConnection.close();
@@ -139,10 +152,11 @@ async function startWebcamSharing() {
     await recruiterPeerConnection.setLocalDescription(offer);
 
     socket.emit('candidate-offer', { interviewId: context.interviewId, offer });
-    console.log('WebRTC: Candidate offer sent to recruiter successfully');
+    console.log('WebRTC: Candidate tracking offer sent to recruiter successfully');
     isWebcamShared = true;
   } catch (err) {
-    console.error('WebRTC: Failed to start webcam sharing for recruiter monitoring:', err);
+    console.error('WebRTC: Failed to start tracking for recruiter monitoring:', err);
+    // Don't alert the user directly as this is a background monitoring process
   }
 }
 
