@@ -4,7 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { Interview } from '../interviews/entities/interview.entity';
 import { FallbackQuestion } from './entities/fallback-question.entity';
 
-import { OpenAiManagerService } from './services/openai-manager.service';
+import { GeminiModule } from '../gemini/gemini.module';
 import { QuestionFallbackService } from './services/question-fallback.service';
 import { InterviewSessionService } from './services/interview-session.service';
 import { InterviewAgentService } from './services/interview-agent.service';
@@ -18,10 +18,10 @@ import { InterviewAgentController } from './interview-agent.controller';
   imports: [
     TypeOrmModule.forFeature([Interview, FallbackQuestion]),
     AuthModule,
+    GeminiModule,
   ],
   controllers: [InterviewAgentController],
   providers: [
-    OpenAiManagerService,
     QuestionFallbackService,
     InterviewSessionService,
     InterviewAgentService,

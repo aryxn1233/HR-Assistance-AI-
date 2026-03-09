@@ -7,9 +7,8 @@ import { Interview } from './entities/interview.entity';
 import { InterviewQuestion } from './entities/interview-question.entity';
 import { InterviewAnswer } from './entities/interview-answer.entity';
 import { InterviewReport } from './entities/interview-report.entity';
-import { AIModule } from '../ai/ai.module';
+import { GeminiModule } from '../gemini/gemini.module';
 import { DIdModule } from '../did/did.module';
-
 import { Application } from '../candidates/application.entity';
 import { Candidate } from '../candidates/candidate.entity';
 import { InterviewQuestionModule } from './question-generation/interview-question.module';
@@ -26,7 +25,7 @@ import { AuthModule } from '../auth/auth.module';
       Application,
       Candidate,
     ]),
-    AIModule,
+    GeminiModule,
     DIdModule,
     InterviewQuestionModule,
     InterviewAgentModule,

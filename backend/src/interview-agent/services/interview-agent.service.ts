@@ -1,5 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { OpenAiManagerService } from './openai-manager.service';
+import { GeminiService } from '../../gemini/gemini.service';
 import { QuestionFallbackService } from './question-fallback.service';
 import { InterviewSessionService } from './interview-session.service';
 
@@ -8,7 +8,7 @@ export class InterviewAgentService {
   private readonly logger = new Logger(InterviewAgentService.name);
 
   constructor(
-    private openAiManager: OpenAiManagerService,
+    private geminiService: GeminiService,
     private questionFallback: QuestionFallbackService,
     private sessionService: InterviewSessionService,
   ) { }
@@ -82,7 +82,6 @@ export class InterviewAgentService {
     const jobRole = interview.job?.title || 'Software Engineer';
 
     if (
-      this.openAiManager.isFallbackMode ||
       interview.status === 'ai_fallback_mode'
     ) {
       return await this.questionFallback.getNextFallbackQuestion(
@@ -119,7 +118,7 @@ Do not reveal answers. Do not give hints. Do not ask multiple questions.`,
       }
     }
 
-    const nextQuestion = await this.openAiManager.generateNextQuestion(history);
+    const nextQuestion = await this.geminiService.generateNextQuestion(history);
 
     if (!nextQuestion) {
       this.logger.warn(

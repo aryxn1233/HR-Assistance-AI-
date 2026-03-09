@@ -17,7 +17,7 @@ import {
     InterviewReport,
     HiringRecommendation,
 } from './entities/interview-report.entity';
-import { OpenAIService } from '../ai/openai.service';
+import { GeminiService } from '../gemini/gemini.service';
 import {
     Application,
     ApplicationStatus,
@@ -47,7 +47,7 @@ export class InterviewsService {
         private applicationsRepository: Repository<Application>,
         @InjectRepository(Candidate)
         private candidatesRepository: Repository<Candidate>,
-        private openAIService: OpenAIService,
+        private geminiService: GeminiService,
         private didService: DIdService,
         private didSessionManager: DIdSessionManager,
         private oldSessionService: OldSessionService,
@@ -432,7 +432,7 @@ export class InterviewsService {
         // Evaluate Answer
         let evaluation;
         try {
-            evaluation = await this.openAIService.evaluateAnswer(
+            evaluation = await this.geminiService.evaluateAnswer(
                 currentQuestion.questionText,
                 answerText,
             );
@@ -560,7 +560,7 @@ export class InterviewsService {
                 joining_probability_percent: 0,
             };
         } else {
-            reportData = await this.openAIService.generateInterviewReport({
+            reportData = await this.geminiService.generateReport({
                 job: interview.job?.title,
                 messages: interview.transcript,
             });
