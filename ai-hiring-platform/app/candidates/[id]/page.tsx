@@ -27,6 +27,7 @@ import Link from "next/link"
 import api from "@/lib/api"
 import { getFreshToken } from "@/lib/tokenManager"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
@@ -179,12 +180,22 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             <a href={candidate.portfolioUrl} target="_blank"><Globe className="h-4 w-4" /></a>
                                         </Button>
                                     )}
-                                    {candidate.resumeUrl ? (
-                                        <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1" asChild>
-                                            <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer">
-                                                <FileText className="h-4 w-4" /> View Resume
-                                            </a>
-                                        </Button>
+                                    {candidate.resumeText ? (
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1">
+                                                    <FileText className="h-4 w-4" /> View Resume
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                                <DialogHeader>
+                                                    <DialogTitle>Candidate Resume</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed p-4 bg-slate-50 border border-slate-100 rounded-xl dark:bg-card dark:border-border dark:text-muted-foreground">
+                                                    {candidate.resumeText}
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
                                     ) : (
                                         <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1" disabled>
                                             <FileText className="h-4 w-4 text-slate-400" /> No Resume Available
