@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { OpenAIService } from '../ai/openai.service';
+import { GeminiService } from '../gemini/gemini.service';
 
 @Injectable()
 export class ScoringService {
-  constructor(private readonly openAIService: OpenAIService) {}
+  constructor(private readonly geminiService: GeminiService) { }
 
   async evaluateResume(resumeText: string, jobDescription: string) {
     try {
-      const aiResult = await this.openAIService.evaluateResume(
+      const aiResult = await this.geminiService.evaluateResume(
         resumeText,
         jobDescription,
       );

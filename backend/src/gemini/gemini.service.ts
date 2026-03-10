@@ -386,4 +386,45 @@ export class GeminiService {
       throw new Error('Invalid JSON from AI');
     }
   }
+
+  async evaluateResume(
+    resumeText: string,
+    jobDescription: string,
+  ): Promise<any> {
+    const prompt = `You are an expert technical recruiter.
+Compare the following resume with the job description.
+Score from 0 to 100 based on fit.
+Be objective but fair. For students or early-career candidates, look for relevant coursework, projects, and potential.
+If the resume is extremely brief (e.g., only a name), provide low but realistic scores if any keywords match.
+Return JSON only in this format:
+{
+  "skillMatchScore": number,
+  "experienceMatch": number,
+  "relevanceScore": number,
+  "overallScore": number,
+  "strengths": string[],
+  "weaknesses": string[]
+}
+
+Job Description:
+${jobDescription}
+
+Resume:
+${resumeText}`;
+
+    const fallback = {
+      skillMatchScore: 0,
+      experienceMatch: 0,
+      relevanceScore: 0,
+      overallScore: 0,
+      strengths: ['Unable to evaluate'],
+      weaknesses: ['AI service unavailable'],
+    };
+
+    return this.runWithRotation(async (model) => {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      return this.cleanJson(text);
+    }, fallback);
+  }
 }
