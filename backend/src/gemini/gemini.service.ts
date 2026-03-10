@@ -43,7 +43,7 @@ export class GeminiService {
     } else {
       this.models = keys.map((key) => {
         const genAI = new GoogleGenerativeAI(key);
-        return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       });
       console.log(
         `Initialized GeminiService with ${this.models.length} API keys.`,
