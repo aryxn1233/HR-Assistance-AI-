@@ -179,9 +179,17 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             <a href={candidate.portfolioUrl} target="_blank"><Globe className="h-4 w-4" /></a>
                                         </Button>
                                     )}
-                                    <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1">
-                                        <FileText className="h-4 w-4" /> View Resume
-                                    </Button>
+                                    {candidate.resumeUrl ? (
+                                        <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1" asChild>
+                                            <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer">
+                                                <FileText className="h-4 w-4" /> View Resume
+                                            </a>
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1" disabled>
+                                            <FileText className="h-4 w-4 text-slate-400" /> No Resume Available
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </CardContent>
