@@ -13,7 +13,7 @@ export class QuestionFallbackService {
   constructor(
     @InjectRepository(FallbackQuestion)
     private fallbackQuestionsRepo: Repository<FallbackQuestion>,
-  ) {}
+  ) { }
 
   async getNextFallbackQuestion(
     jobRole: string,
@@ -24,25 +24,39 @@ export class QuestionFallbackService {
     );
 
     // Find questions matching the role, ordered by their index
-    // We'll fallback to a generic set if no exact role matches
     let questions = await this.fallbackQuestionsRepo.find({
       where: { jobRole },
       order: { orderIndex: 'ASC' },
     });
 
     if (questions.length === 0) {
-      // Check if there are generic 'Software Engineer' or 'General' fallback questions
+      // Check if there are generic fallback questions
       questions = await this.fallbackQuestionsRepo.find({
         order: { orderIndex: 'ASC' }, // Just get anything as a last resort
       });
+    }
 
-      if (questions.length === 0) {
-        return 'Can you explain a complex project you worked on recently?'; // absolute fallback
-      }
+    let finalQuestions = questions.map((q) => q.question);
+
+    const ABSOLUTE_FALLBACKS = [
+      'Can you explain a complex project you worked on recently?',
+      'What is the most challenging technical problem you have solved?',
+      'How do you handle disagreements with your team members about technical decisions?',
+      'Can you describe a time when you had to learn a new technology quickly?',
+      'What are your favorite programming languages or tools, and why?',
+      'Describe a situation where you had to meet a tight deadline.',
+      'How do you approach debugging a particularly tricky issue?',
+      'What architecture patterns are you most familiar with?',
+      'How do you stay updated with the latest trends in software development?',
+      'Can you talk about a time when a project failed and what you learned from it?'
+    ];
+
+    // If there are no questions or very few, pad with absolute fallbacks to ensure variety
+    if (finalQuestions.length < 5) {
+      finalQuestions = [...finalQuestions, ...ABSOLUTE_FALLBACKS];
     }
 
     // Return the question at the current index, or loop back around
-    const fallback = questions[currentQuestionIndex % questions.length];
-    return fallback.question;
+    return finalQuestions[currentQuestionIndex % finalQuestions.length];
   }
 }
