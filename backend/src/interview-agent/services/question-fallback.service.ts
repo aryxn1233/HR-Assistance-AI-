@@ -41,8 +41,8 @@ export class QuestionFallbackService {
     const ABSOLUTE_FALLBACKS = [
       'Can you explain a complex project you worked on recently?',
       'What is the most challenging technical problem you have solved?',
-      'How do you handle disagreements with your team members about technical decisions?',
-      'Can you describe a time when you had to learn a new technology quickly?',
+      'Describe JAVA and how it is different from other languages?',
+      'What is the difference between JAVA and JAVASCRIPT?',
       'What are your favorite programming languages or tools, and why?',
       'Describe a situation where you had to meet a tight deadline.',
       'How do you approach debugging a particularly tricky issue?',

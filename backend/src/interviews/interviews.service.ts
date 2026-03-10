@@ -482,18 +482,24 @@ export class InterviewsService {
         );
     }
 
-    private async finishInterview(
+    public async finishInterview(
         interview: Interview,
         closingMessage?: string,
+        finalStatus: InterviewStatus = InterviewStatus.COMPLETED,
+        terminationReason?: string,
     ): Promise<any> {
         await this.interviewsRepository.update(interview.id, {
-            status: InterviewStatus.COMPLETED,
+            status: finalStatus,
+            ...(terminationReason && { terminationReason }),
+            ...(finalStatus !== InterviewStatus.COMPLETED && { endedAt: new Date() })
         });
-        interview.status = InterviewStatus.COMPLETED;
+        interview.status = finalStatus;
+        if (terminationReason) interview.terminationReason = terminationReason;
+
         this.liveInterviewService.removeActiveInterview(interview.id);
         this.liveInterviewGateway.broadcastStatus(
             interview.id,
-            InterviewStatus.COMPLETED,
+            finalStatus,
         );
 
         if (closingMessage) {
@@ -601,7 +607,7 @@ export class InterviewsService {
 
         const finalScore = (reportData.overall_rating || 0) * 10;
         await this.interviewsRepository.update(interview.id, {
-            status: InterviewStatus.COMPLETED,
+            status: finalStatus,
             score: finalScore,
             fitDecision: reportData.fit_for_role,
             joinProbability: reportData.joining_probability_percent,

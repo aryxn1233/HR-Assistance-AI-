@@ -1,8 +1,9 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { Interview } from '../interviews/entities/interview.entity';
 import { FallbackQuestion } from './entities/fallback-question.entity';
+import { InterviewsModule } from '../interviews/interviews.module';
 
 import { GeminiModule } from '../gemini/gemini.module';
 import { QuestionFallbackService } from './services/question-fallback.service';
@@ -19,6 +20,7 @@ import { InterviewAgentController } from './interview-agent.controller';
     TypeOrmModule.forFeature([Interview, FallbackQuestion]),
     AuthModule,
     GeminiModule,
+    forwardRef(() => InterviewsModule),
   ],
   controllers: [InterviewAgentController],
   providers: [

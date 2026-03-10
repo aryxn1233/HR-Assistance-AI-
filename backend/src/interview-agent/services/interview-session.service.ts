@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -6,6 +6,7 @@ import {
   InterviewStatus,
 } from '../../interviews/entities/interview.entity';
 import { LiveInterviewGateway } from '../gateways/live-interview.gateway';
+import { InterviewsService } from '../../interviews/interviews.service';
 
 @Injectable()
 export class InterviewSessionService {
@@ -15,6 +16,8 @@ export class InterviewSessionService {
     @InjectRepository(Interview)
     private interviewsRepository: Repository<Interview>,
     private liveInterviewGateway: LiveInterviewGateway,
+    @Inject(forwardRef(() => InterviewsService))
+    private interviewsService: InterviewsService,
   ) { }
 
   async getInterview(id: string): Promise<Interview> {
@@ -71,9 +74,6 @@ export class InterviewSessionService {
       this.logger.warn(
         `Interview ${id} skipped >= ${MAX_SKIPS} times. Auto-terminating.`,
       );
-      interview.status = InterviewStatus.FAILED_INTERVIEW;
-      interview.terminationReason = 'Candidate skipped multiple questions';
-      interview.endedAt = new Date();
       terminated = true;
 
       // Notify candidate frontend
@@ -82,14 +82,17 @@ export class InterviewSessionService {
         'FAILED_INTERVIEW',
         'This interview has ended because multiple questions were skipped.',
       );
-      // Notify recruiter dashboard
-      this.liveInterviewGateway.broadcastStatus(
-        id,
+
+      await this.interviewsService.finishInterview(
+        interview,
+        'This interview has ended because multiple questions were skipped.',
         InterviewStatus.FAILED_INTERVIEW,
+        'Candidate skipped multiple questions'
       );
+    } else {
+      await this.interviewsRepository.save(interview);
     }
 
-    await this.interviewsRepository.save(interview);
     return { interview, terminated };
   }
 
