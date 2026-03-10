@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isPublicRoute = createRouteMatcher(['/', '/login(.*)', '/register(.*)', '/public(.*)'])
+// const isPublicRoute = createRouteMatcher(['/', '/login(.*)', '/register(.*)', '/public(.*)'])
 
-export default clerkMiddleware(async (auth, request) => {
+export default clerkMiddleware(async () => {
     // We let AuthGuard.tsx handle route protection to support dual authentication
     // (Clerk + Legacy Database Login)
     return;

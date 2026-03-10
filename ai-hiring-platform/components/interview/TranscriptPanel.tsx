@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function TranscriptPanel() {

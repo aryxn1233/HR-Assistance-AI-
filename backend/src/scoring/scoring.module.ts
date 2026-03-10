@@ -7,4 +7,4 @@ import { GeminiModule } from '../gemini/gemini.module';
   providers: [ScoringService],
   exports: [ScoringService],
 })
-export class ScoringModule { }
+export class ScoringModule {}

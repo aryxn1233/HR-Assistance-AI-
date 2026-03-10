@@ -35,4 +35,4 @@ import { AuthModule } from '../auth/auth.module';
   providers: [InterviewsService, InterviewGateway],
   exports: [InterviewsService],
 })
-export class InterviewsModule { }
+export class InterviewsModule {}

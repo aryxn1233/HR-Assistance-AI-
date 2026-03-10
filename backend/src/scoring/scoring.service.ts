@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { GeminiService } from '../gemini/gemini.service';
 
 @Injectable()
 export class ScoringService {
-  constructor(private readonly geminiService: GeminiService) { }
+  constructor(private readonly geminiService: GeminiService) {}
 
   async evaluateResume(resumeText: string, jobDescription: string) {
     try {

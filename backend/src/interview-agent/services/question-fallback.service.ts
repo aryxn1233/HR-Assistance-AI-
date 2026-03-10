@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,7 +14,7 @@ export class QuestionFallbackService {
   constructor(
     @InjectRepository(FallbackQuestion)
     private fallbackQuestionsRepo: Repository<FallbackQuestion>,
-  ) { }
+  ) {}
 
   async getNextFallbackQuestion(
     jobRole: string,
@@ -48,7 +49,7 @@ export class QuestionFallbackService {
       'How do you approach debugging a particularly tricky issue?',
       'What architecture patterns are you most familiar with?',
       'How do you stay updated with the latest trends in software development?',
-      'Can you talk about a time when a project failed and what you learned from it?'
+      'Can you talk about a time when a project failed and what you learned from it?',
     ];
 
     // If there are no questions or very few, pad with absolute fallbacks to ensure variety

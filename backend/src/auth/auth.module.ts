@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-return */
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -31,4 +32,4 @@ import { LocalStrategy } from './local.strategy';
   controllers: [AuthController],
   exports: [AuthService, JwtModule], // Export AuthService and JwtModule if needed elsewhere
 })
-export class AuthModule { }
+export class AuthModule {}

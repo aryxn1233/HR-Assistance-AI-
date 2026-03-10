@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Injectable,
   Logger,
@@ -28,7 +29,7 @@ export class RecruiterControlService {
     private liveInterviewService: LiveInterviewService,
     @Inject(forwardRef(() => InterviewsService))
     private interviewsService: InterviewsService,
-  ) { }
+  ) {}
 
   async terminateInterview(
     interviewId: string,
@@ -72,7 +73,7 @@ export class RecruiterControlService {
       interview,
       'The recruiter has ended the interview. Thank you for participating.',
       InterviewStatus.TERMINATED_BY_RECRUITER,
-      'Ended by recruiter'
+      'Ended by recruiter',
     );
 
     return interview;

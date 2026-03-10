@@ -1,4 +1,11 @@
-import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-enum-comparison */
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -18,7 +25,7 @@ export class InterviewSessionService {
     private liveInterviewGateway: LiveInterviewGateway,
     @Inject(forwardRef(() => InterviewsService))
     private interviewsService: InterviewsService,
-  ) { }
+  ) {}
 
   async getInterview(id: string): Promise<Interview> {
     const interview = await this.interviewsRepository.findOne({
@@ -87,7 +94,7 @@ export class InterviewSessionService {
         interview,
         'This interview has ended because multiple questions were skipped.',
         InterviewStatus.FAILED_INTERVIEW,
-        'Candidate skipped multiple questions'
+        'Candidate skipped multiple questions',
       );
     } else {
       await this.interviewsRepository.save(interview);

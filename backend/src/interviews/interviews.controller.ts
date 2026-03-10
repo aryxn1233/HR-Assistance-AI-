@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
@@ -13,7 +14,7 @@ import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 
 @Controller('interviews')
 export class InterviewsController {
-  constructor(private readonly interviewsService: InterviewsService) { }
+  constructor(private readonly interviewsService: InterviewsService) {}
 
   @UseGuards(CombinedAuthGuard)
   @Post()
@@ -24,8 +25,14 @@ export class InterviewsController {
   @UseGuards(CombinedAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
-    console.log(`[ControllerDebug] findOne for ${id}, req.user:`, JSON.stringify(req.user));
-    return this.interviewsService.findOne(id, req.user?.userId || req.user?.id || req.user?.sub);
+    console.log(
+      `[ControllerDebug] findOne for ${id}, req.user:`,
+      JSON.stringify(req.user),
+    );
+    return this.interviewsService.findOne(
+      id,
+      req.user?.userId || req.user?.id || req.user?.sub,
+    );
   }
 
   @UseGuards(CombinedAuthGuard)
@@ -50,7 +57,9 @@ export class InterviewsController {
     @Body('streamId') streamId: string,
     @Body('sessionId') sessionId: string,
   ) {
-    console.log(`[InterviewsController] START SESSION hit for interview: ${id}`);
+    console.log(
+      `[InterviewsController] START SESSION hit for interview: ${id}`,
+    );
     return this.interviewsService.startSession(id, streamId, sessionId);
   }
 

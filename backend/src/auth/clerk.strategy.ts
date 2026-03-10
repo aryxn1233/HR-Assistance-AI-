@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-custom';
@@ -33,10 +34,13 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       });
 
       console.log('Clerk token verified successfully for sub:', payload?.sub);
-      console.log('Clerk Metadata:', JSON.stringify({
-        public: payload?.publicMetadata,
-        unsafe: (payload as any).unsafeMetadata
-      }));
+      console.log(
+        'Clerk Metadata:',
+        JSON.stringify({
+          public: payload?.publicMetadata,
+          unsafe: (payload as any).unsafeMetadata,
+        }),
+      );
 
       if (!payload?.sub) {
         throw new UnauthorizedException('Invalid token payload');

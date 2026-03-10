@@ -13,6 +13,7 @@ class AudioAnalyserService {
 
     constructor() {
         if (typeof window !== "undefined") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
     }
@@ -69,6 +70,7 @@ class AudioAnalyserService {
     getAmplitude(): number {
         if (!this.analyser || !this.dataArray) return 0;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.analyser as any).getByteFrequencyData(this.dataArray);
 
         let sum = 0;

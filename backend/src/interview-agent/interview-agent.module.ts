@@ -33,4 +33,4 @@ import { InterviewAgentController } from './interview-agent.controller';
   ],
   exports: [InterviewAgentService, LiveInterviewService, LiveInterviewGateway],
 })
-export class InterviewAgentModule { }
+export class InterviewAgentModule {}

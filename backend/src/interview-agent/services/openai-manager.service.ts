@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-redundant-type-constituents */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
@@ -15,9 +16,15 @@ export class OpenAiManagerService {
   }
 
   private initializeKeys() {
-    const key1 = this.configService.get<string>('OPENAI_API_KEY') || this.configService.get<string>('OPENAI_KEY_1');
-    const key2 = this.configService.get<string>('OPENAI_API_KEY2') || this.configService.get<string>('OPENAI_KEY_2');
-    const key3 = this.configService.get<string>('OPENAI_API_KEY3') || this.configService.get<string>('OPENAI_KEY_3');
+    const key1 =
+      this.configService.get<string>('OPENAI_API_KEY') ||
+      this.configService.get<string>('OPENAI_KEY_1');
+    const key2 =
+      this.configService.get<string>('OPENAI_API_KEY2') ||
+      this.configService.get<string>('OPENAI_KEY_2');
+    const key3 =
+      this.configService.get<string>('OPENAI_API_KEY3') ||
+      this.configService.get<string>('OPENAI_KEY_3');
 
     if (key1) this.keys.push(key1);
     if (key2) this.keys.push(key2);

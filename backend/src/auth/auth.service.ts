@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/require-await, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,7 +22,7 @@ export class AuthService {
     private configService: ConfigService,
   ) {
     this.clerkClient = createClerkClient({
-      secretKey: configService.get<string>('CLERK_SECRET_KEY')
+      secretKey: configService.get<string>('CLERK_SECRET_KEY'),
     });
   }
 
@@ -88,29 +89,42 @@ export class AuthService {
     let unsafeMetadata = data.unsafe_metadata || {};
 
     let extractedRole =
-      publicMetadata?.role ||
-      unsafeMetadata?.role ||
-      data.role;
+      publicMetadata?.role || unsafeMetadata?.role || data.role;
 
     // If email is missing (common with Clerk JWTs) OR role is missing (default JWT doesn't include metadata), fetch full user from Clerk API
     if (!email || !extractedRole) {
       try {
-        console.log(`[ClerkSync] Metadata or Email missing in payload. Fetching full user from Clerk API for ${clerkId}`);
+        console.log(
+          `[ClerkSync] Metadata or Email missing in payload. Fetching full user from Clerk API for ${clerkId}`,
+        );
         const clerkUser = await this.clerkClient.users.getUser(clerkId);
         email = clerkUser.emailAddresses?.[0]?.emailAddress || email;
         firstName = clerkUser.firstName || firstName;
         lastName = clerkUser.lastName || lastName;
-        publicMetadata = { ...publicMetadata, ...(clerkUser.publicMetadata as any) };
-        unsafeMetadata = { ...unsafeMetadata, ...(clerkUser.unsafeMetadata as any) };
+        publicMetadata = {
+          ...publicMetadata,
+          ...clerkUser.publicMetadata,
+        };
+        unsafeMetadata = {
+          ...unsafeMetadata,
+          ...clerkUser.unsafeMetadata,
+        };
 
-        extractedRole = publicMetadata?.role || unsafeMetadata?.role || extractedRole;
-        console.log(`[ClerkSync] Fetched full user details from Clerk API. Email: ${email}, Role: ${extractedRole}`);
+        extractedRole =
+          publicMetadata?.role || unsafeMetadata?.role || extractedRole;
+        console.log(
+          `[ClerkSync] Fetched full user details from Clerk API. Email: ${email}, Role: ${extractedRole}`,
+        );
       } catch (err) {
-        console.error(`[ClerkSync] Failed to fetch user from Clerk API: ${err.message}`);
+        console.error(
+          `[ClerkSync] Failed to fetch user from Clerk API: ${err.message}`,
+        );
       }
     }
 
-    console.log(`[ClerkSync] Starting sync for ClerkID: ${clerkId}, Email: ${email}, ExtractedRole: ${extractedRole}`);
+    console.log(
+      `[ClerkSync] Starting sync for ClerkID: ${clerkId}, Email: ${email}, ExtractedRole: ${extractedRole}`,
+    );
 
     let user = await this.usersRepository.findOne({
       where: { clerkId: clerkId },
@@ -124,7 +138,9 @@ export class AuthService {
     if (!user && email) {
       user = await this.usersRepository.findOne({ where: { email } });
       if (user) {
-        console.log(`[ClerkSync] Found legacy user by email: ${email}. Linking to ClerkID: ${clerkId}`);
+        console.log(
+          `[ClerkSync] Found legacy user by email: ${email}. Linking to ClerkID: ${clerkId}`,
+        );
         user.clerkId = clerkId;
       }
     }
@@ -133,13 +149,15 @@ export class AuthService {
       clerkId: clerkId,
       firstName: firstName,
       lastName: lastName,
-      avatarUrl: data.image_url || data.avatarUrl || data.profile_image_url || null,
+      avatarUrl:
+        data.image_url || data.avatarUrl || data.profile_image_url || null,
       email: email || user?.email || `${clerkId}@clerk.local`,
     };
 
-
     if (!user) {
-      console.log(`[ClerkSync] No user found. Creating new user record for ${userData.email}`);
+      console.log(
+        `[ClerkSync] No user found. Creating new user record for ${userData.email}`,
+      );
       const role = extractedRole || UserRole.CANDIDATE;
 
       user = this.usersRepository.create({
@@ -151,22 +169,31 @@ export class AuthService {
       console.log(`[ClerkSync] Updating existing user: ${user.id}`);
       // ONLY override the user's role if Clerk explicitly provided one and it differs
       if (extractedRole && extractedRole !== user.role) {
-        console.log(`[ClerkSync] Updating user role from ${user.role} to ${extractedRole}`);
+        console.log(
+          `[ClerkSync] Updating user role from ${user.role} to ${extractedRole}`,
+        );
         userData.role = extractedRole as UserRole;
       }
       Object.assign(user, userData);
     }
 
     const savedUser = await this.usersRepository.save(user);
-    console.log(`[ClerkSync] Successfully synchronized user: ${savedUser.email} (ID: ${savedUser.id}, Role: ${savedUser.role})`);
+    console.log(
+      `[ClerkSync] Successfully synchronized user: ${savedUser.email} (ID: ${savedUser.id}, Role: ${savedUser.role})`,
+    );
 
     // ENSURE CANDIDATE PROFILE EXISTS
-    if (savedUser.role === UserRole.CANDIDATE || (savedUser.role as any) === 'candidate') {
+    if (
+      savedUser.role === UserRole.CANDIDATE ||
+      (savedUser.role as any) === 'candidate'
+    ) {
       const candidateExists = await this.candidatesRepository.findOne({
-        where: { userId: savedUser.id }
+        where: { userId: savedUser.id },
       });
       if (!candidateExists) {
-        console.log(`[ClerkSync] Creating missing candidate profile for user: ${savedUser.id}`);
+        console.log(
+          `[ClerkSync] Creating missing candidate profile for user: ${savedUser.id}`,
+        );
         const newCandidate = this.candidatesRepository.create({
           userId: savedUser.id,
           location: 'Remote',

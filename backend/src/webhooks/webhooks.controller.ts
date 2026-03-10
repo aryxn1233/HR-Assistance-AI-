@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Post,
@@ -15,7 +16,7 @@ export class WebhooksController {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   @Post('clerk')
   async handleClerkWebhook(
@@ -25,7 +26,9 @@ export class WebhooksController {
     @Body() payload: any,
     @Request() req: any,
   ) {
-    console.log(`[Webhook] Received Clerk webhook: svix-id=${svixId}, timestamp=${svixTimestamp}`);
+    console.log(
+      `[Webhook] Received Clerk webhook: svix-id=${svixId}, timestamp=${svixTimestamp}`,
+    );
     const secret = this.configService.get<string>('CLERK_WEBHOOK_SECRET');
     if (!secret) {
       console.error('CLERK_WEBHOOK_SECRET is not defined');

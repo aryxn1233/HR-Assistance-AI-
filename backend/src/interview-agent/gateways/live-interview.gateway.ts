@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-member-access */
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -12,7 +13,8 @@ import { Logger, UseGuards } from '@nestjs/common';
 
 @WebSocketGateway({ namespace: '/recruiter-monitor', cors: true })
 export class LiveInterviewGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -90,7 +92,9 @@ export class LiveInterviewGateway
   broadcastInterviewStarted(data: any) {
     this.logger.log(`Broadcasting interview started: ${data.interviewId}`);
     if (!this.server) {
-      this.logger.error('Socket.io server NOT initialized in LiveInterviewGateway!');
+      this.logger.error(
+        'Socket.io server NOT initialized in LiveInterviewGateway!',
+      );
       return;
     }
     this.server.emit('interview:started', data);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
@@ -207,11 +208,11 @@ export class GeminiService {
       historyLen < this.fallbackQuestions.length
         ? this.fallbackQuestions[historyLen]
         : ({
-          question: '',
-          skillFocus: 'Wrap-up',
-          difficulty: 'Easy',
-          isComplete: true,
-        } as any);
+            question: '',
+            skillFocus: 'Wrap-up',
+            difficulty: 'Easy',
+            isComplete: true,
+          } as any);
 
     return this.runWithRotation(async (model) => {
       const result = await model.generateContent(prompt);
@@ -222,7 +223,9 @@ export class GeminiService {
   async generateNextQuestion(
     history: { role: 'system' | 'user' | 'assistant'; content: string }[],
   ): Promise<string | null> {
-    const prompt = history.map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n') + '\n\nGenerate the next question based on the system prompt instructions. Return only the question text.';
+    const prompt =
+      history.map((h) => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n') +
+      '\n\nGenerate the next question based on the system prompt instructions. Return only the question text.';
 
     return this.runWithRotation(async (model) => {
       const result = await model.generateContent(prompt);

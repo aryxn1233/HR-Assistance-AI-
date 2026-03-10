@@ -17,7 +17,9 @@ export class LiveInterviewService {
   private static activeSessions = new Map<string, ActiveInterview>();
 
   constructor() {
-    this.logger.log(`LiveInterviewService initialized (Instance: ${this.instanceId})`);
+    this.logger.log(
+      `LiveInterviewService initialized (Instance: ${this.instanceId})`,
+    );
   }
 
   addActiveInterview(data: ActiveInterview): void {
@@ -40,7 +42,9 @@ export class LiveInterviewService {
     const list = Array.from(LiveInterviewService.activeSessions.values()).sort(
       (a, b) => b.startedAt.getTime() - a.startedAt.getTime(),
     );
-    this.logger.log(`[${this.instanceId}] Fetching active interviews: count=${list.length}`);
+    this.logger.log(
+      `[${this.instanceId}] Fetching active interviews: count=${list.length}`,
+    );
     return list;
   }
 }

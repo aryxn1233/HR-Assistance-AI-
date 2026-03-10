@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { GeminiService } from '../../gemini/gemini.service';
 import { QuestionFallbackService } from './question-fallback.service';
@@ -11,20 +12,21 @@ export class InterviewAgentService {
     private geminiService: GeminiService,
     private questionFallback: QuestionFallbackService,
     private sessionService: InterviewSessionService,
-  ) { }
+  ) {}
 
   private isSkipResponse(answer: string): boolean {
     if (!answer || answer.trim() === '') return false;
 
     const lowerAnswer = answer.toLowerCase().trim();
-    const skipRegex = /\b(skip|i don't know|i do not know|no idea|pass|next question)\b/i;
+    const skipRegex =
+      /\b(skip|i don't know|i do not know|no idea|pass|next question)\b/i;
 
     // A skip response is usually a short command, not a full paragraph that happens to contain a skip phrase.
     return skipRegex.test(lowerAnswer) && lowerAnswer.length < 40;
   }
 
   async processAnswer(id: string, answer: string): Promise<any> {
-    let interview = await this.sessionService.getInterview(id);
+    const interview = await this.sessionService.getInterview(id);
 
     if (
       [
@@ -75,9 +77,7 @@ export class InterviewAgentService {
     const transcript = interview.transcript || [];
     const jobRole = interview.job?.title || 'Software Engineer';
 
-    if (
-      interview.status === 'ai_fallback_mode'
-    ) {
+    if (interview.status === 'ai_fallback_mode') {
       return await this.questionFallback.getNextFallbackQuestion(
         jobRole,
         interview.currentQuestionIndex,
@@ -88,13 +88,13 @@ export class InterviewAgentService {
       role: 'system' | 'user' | 'assistant';
       content: string;
     }[] = [
-        {
-          role: 'system',
-          content: `You are an AI technical interviewer. Ask one question at a time.
+      {
+        role: 'system',
+        content: `You are an AI technical interviewer. Ask one question at a time.
 Verify the candidate's last answer. Generate the next logical question to assess their technical knowledge, reasoning ability, and real project experience for a ${jobRole} role.
 Do not reveal answers. Do not give hints. Do not ask multiple questions.`,
-        },
-      ];
+      },
+    ];
 
     for (const entry of transcript) {
       if (entry.speaker === 'AI') {

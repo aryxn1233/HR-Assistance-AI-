@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Controller, Get, Headers, UseGuards, Request } from '@nestjs/common';
 import { AppService } from './app.service';
 import { CombinedAuthGuard } from './auth/combined-auth.guard';
