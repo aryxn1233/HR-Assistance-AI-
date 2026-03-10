@@ -14,19 +14,13 @@ export class InterviewAgentService {
   ) { }
 
   private isSkipResponse(answer: string): boolean {
-    if (!answer || answer.trim() === '') return true;
+    if (!answer || answer.trim() === '') return false;
 
     const lowerAnswer = answer.toLowerCase().trim();
-    const skipPhrases = [
-      'skip',
-      "i don't know",
-      'i do not know',
-      'no idea',
-      'pass',
-      'next question',
-    ];
+    const skipRegex = /\b(skip|i don't know|i do not know|no idea|pass|next question)\b/i;
 
-    return skipPhrases.some((phrase) => lowerAnswer.includes(phrase));
+    // A skip response is usually a short command, not a full paragraph that happens to contain a skip phrase.
+    return skipRegex.test(lowerAnswer) && lowerAnswer.length < 40;
   }
 
   async processAnswer(id: string, answer: string): Promise<any> {
