@@ -490,10 +490,10 @@ export default function CandidateProfilePage() {
 
                     <div className="space-y-4">
                         {experiences.map((exp) => (
-                            <div key={exp.id} className="p-6 rounded-2xl bg-slate-50 border border-slate-100 group relative">
+                            <div key={exp.id} className="p-6 rounded-2xl bg-slate-50 dark:bg-card/50 border border-slate-100 dark:border-border group relative">
                                 <div className="flex justify-between items-start">
                                     <div className="flex gap-4">
-                                        <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-slate-100">
+                                        <div className="h-12 w-12 rounded-xl bg-white dark:bg-card shadow-sm flex items-center justify-center border border-slate-100 dark:border-border">
                                             <Briefcase className="h-6 w-6 text-primary" />
                                         </div>
                                         <div>
@@ -536,7 +536,7 @@ export default function CandidateProfilePage() {
                                     </div>
                                 </div>
                                 {exp.description && (
-                                    <p className="mt-4 text-sm text-slate-600 font-medium leading-relaxed">
+                                    <p className="mt-4 text-sm text-slate-600 dark:text-muted-foreground font-medium leading-relaxed">
                                         {exp.description}
                                     </p>
                                 )}
