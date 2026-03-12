@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 // ─────────────────────────────────────────────
 //  Public Interfaces
@@ -76,6 +77,7 @@ type InterviewStage = (typeof INTERVIEW_STAGES)[number];
 export class GeminiService {
   private models: GenerativeModel[] = [];
   private currentKeyIndex = 0;
+  private openRouter: OpenAI | null = null;
 
   constructor(private configService: ConfigService) {
     const keys = [
@@ -97,6 +99,19 @@ export class GeminiService {
         `✅  GeminiService initialized with ${this.models.length} API key(s).`,
       );
     }
+
+    const openRouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
+    if (openRouterKey) {
+      this.openRouter = new OpenAI({
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: openRouterKey,
+        defaultHeaders: {
+          'HTTP-Referer': 'https://hire-me.site',
+          'X-Title': 'AI Hiring Platform',
+        },
+      });
+      console.log('✅  OpenRouter fallback system initialized.');
+    }
   }
 
   // ───────────────────────────────────────────
@@ -106,9 +121,10 @@ export class GeminiService {
   private async runWithRotation<T>(
     action: (model: GenerativeModel) => Promise<T>,
     fallback: T,
+    promptForOpenRouter?: string,
   ): Promise<T> {
-    if (this.models.length === 0) {
-      console.error('Gemini models not initialized. Check API Keys.');
+    if (this.models.length === 0 && !this.openRouter) {
+      console.error('AI models not initialized. Check API Keys.');
       return fallback;
     }
 
@@ -143,7 +159,24 @@ export class GeminiService {
       }
     }
 
-    console.warn('⚠️  All Gemini keys exhausted — using fallback response.');
+    if (this.openRouter && promptForOpenRouter) {
+      console.warn('🔄  All Gemini keys failed. Attempting OpenRouter fallback...');
+      try {
+        const response = await this.openRouter.chat.completions.create({
+          model: 'google/gemini-2.0-flash-001',
+          messages: [{ role: 'user', content: promptForOpenRouter }],
+        });
+        const text = response.choices[0].message.content;
+        if (text) {
+          if (typeof fallback === 'string') return text as any;
+          return this.cleanJson(text) as T;
+        }
+      } catch (e: any) {
+        console.error(`❌  OpenRouter fallback failed: ${e.message}`);
+      }
+    }
+
+    console.warn('⚠️  All AI providers exhausted — using fallback response.');
     return fallback;
   }
 
@@ -253,7 +286,7 @@ If isProfessional is true, closingMessage must be null.
           "I'm going to end the interview here because the conversation is no longer professional. Thank you for your time.";
       }
       return parsed;
-    }, fallback);
+    }, fallback, prompt);
   }
 
   // ───────────────────────────────────────────
@@ -316,7 +349,7 @@ Return ONLY valid JSON:
     return this.runWithRotation(async (model) => {
       const result = await model.generateContent(prompt);
       return this.cleanJson(result.response.text()) as QuestionData;
-    }, fallback);
+    }, fallback, prompt);
   }
 
   // ───────────────────────────────────────────
@@ -361,7 +394,7 @@ Return ONLY valid JSON:
     const raw = await this.runWithRotation(async (model) => {
       const result = await model.generateContent(prompt);
       return this.cleanJson(result.response.text()) as EvaluationData;
-    }, fallback);
+    }, fallback, prompt);
 
     // Apply hard-question bonus
     return this.applyHardQuestionBonus(raw, difficulty);
@@ -466,7 +499,7 @@ Return ONLY valid JSON:
     return this.runWithRotation(async (model) => {
       const result = await model.generateContent(prompt);
       return this.cleanJson(result.response.text()) as InterviewReportData;
-    }, fallback);
+    }, fallback, prompt);
   }
 
   // ───────────────────────────────────────────
@@ -518,7 +551,7 @@ Return ONLY valid JSON:
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       return text ? text.replace(/^[\"']|[\"']$/g, '').trim() : null;
-    }, null);
+    }, null, prompt);
   }
 
   // ───────────────────────────────────────────
@@ -561,7 +594,7 @@ ${resumeText}`;
     return this.runWithRotation(async (model) => {
       const result = await model.generateContent(prompt);
       return this.cleanJson(result.response.text());
-    }, fallback);
+    }, fallback, prompt);
   }
 
   // ───────────────────────────────────────────
@@ -599,7 +632,7 @@ Format: ["Question 1", "Question 2", ...]
         return cleaned as string[];
       }
       return questions;
-    }, questions);
+    }, questions, prompt);
   }
 
   // ───────────────────────────────────────────
