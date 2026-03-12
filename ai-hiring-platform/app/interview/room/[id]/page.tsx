@@ -87,7 +87,7 @@ export default function InterviewRoomPage() {
     useEffect(() => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
-        if (isListening && (transcript || interimTranscript) && !processing) {
+        if (isListening && (transcript || interimTranscript) || (answerText.length > 0 && !processing)) {
             silenceTimerRef.current = setTimeout(() => {
                 const finalAnswer = (transcript || answerText || interimTranscript).trim();
                 if (finalAnswer.length > 5) {
@@ -191,7 +191,7 @@ export default function InterviewRoomPage() {
     }
 
     return (
-        <div className="flex h-screen bg-[#020617] overflow-hidden relative font-sans text-slate-200">
+        <div className="flex flex-col lg:flex-row h-screen bg-[#020617] overflow-hidden relative font-sans text-slate-200">
             {!hasStarted && (
                 <div className="absolute inset-0 z-50 bg-[#020617] flex flex-col items-center justify-center text-white p-4">
                     <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-8 animate-pulse shadow-[0_0_50px_rgba(37,99,235,0.4)]">
@@ -208,9 +208,9 @@ export default function InterviewRoomPage() {
             )}
 
             {/* Stage Area (Avatar) */}
-            <div className="flex-1 relative flex flex-col items-center justify-center p-12 bg-gradient-to-b from-[#020617] to-[#0f172a] overflow-hidden border-r border-white/5">
+            <div className="flex-1 relative flex flex-col items-center justify-center p-4 sm:p-8 lg:p-12 bg-gradient-to-b from-[#020617] to-[#0f172a] overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5">
                 {/* Header Overlay */}
-                <div className="absolute top-8 left-12 right-12 flex justify-between items-start z-10">
+                <div className="absolute top-4 left-4 right-4 sm:top-8 sm:left-12 sm:right-12 flex justify-between items-start z-10">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl">
                             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
@@ -238,7 +238,7 @@ export default function InterviewRoomPage() {
                     </div>
 
                     {/* Self Preview */}
-                    <div className="absolute bottom-6 right-6 w-44 aspect-video shadow-2xl rounded-2xl overflow-hidden border border-white/10 ring-1 ring-white/20 transition-transform hover:scale-105 duration-300">
+                    <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-24 sm:w-44 aspect-video shadow-2xl rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 ring-1 ring-white/20 transition-transform hover:scale-105 duration-300">
                         <WebcamPreview />
                     </div>
                 </div>
@@ -252,16 +252,16 @@ export default function InterviewRoomPage() {
             </div>
 
             {/* Sidebar (Transcript) */}
-            <div className="w-[400px] flex flex-col h-full bg-[#020617] border-l border-white/5">
-                <div className="p-8 border-b border-white/5 flex flex-col gap-4">
+            <div className="w-full lg:w-[400px] flex flex-col h-1/3 lg:h-full bg-[#020617] border-t lg:border-t-0 lg:border-l border-white/5">
+                <div className="p-4 sm:p-8 border-b border-white/5 flex flex-col gap-4">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="h-8 w-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
                                 <Mic className="h-4 w-4 text-blue-500" />
                             </div>
-                            <h2 className="text-sm font-bold text-white tracking-tight leading-none">Conduction Log</h2>
+                            <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-none">Conduction Log</h2>
                         </div>
-                        <Badge className="bg-white/5 border-white/10 text-white text-[10px] tracking-widest uppercase">Question {currentQuestion?.orderNumber || 1}</Badge>
+                        <Badge className="bg-white/5 border-white/10 text-white text-[9px] sm:text-[10px] tracking-widest uppercase">Question {currentQuestion?.orderNumber || 1}</Badge>
                     </div>
                 </div>
 

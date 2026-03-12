@@ -51,11 +51,11 @@ export function Navbar() {
                         <Input
                             type="search"
                             placeholder={role === 'candidate' ? "Search for jobs..." : "Search candidates..."}
-                            className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+                            className="pl-8 w-full sm:w-[250px] md:w-[200px] lg:w-[300px]"
                         />
                     </div>
                 </form>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" className="relative hidden sm:flex">
                     <Bell className="h-5 w-5" />
                     <span className="bg-primary absolute top-2 right-2 h-2 w-2 rounded-full" />
                 </Button>

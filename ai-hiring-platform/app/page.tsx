@@ -12,10 +12,17 @@ import {
 import { motion } from "framer-motion"
 import {
     Briefcase, Users, Brain, Shield, Zap, Globe,
-    ArrowRight, Video, Star, Check, ChevronRight
+    ArrowRight, Video, Star, Check, ChevronRight, Menu
 } from "lucide-react"
 import Link from "next/link"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet"
 
 // ─── Animation Helpers ────────────────────────────────
 const fadeUp = {
@@ -43,21 +50,62 @@ export default function LandingPage() {
                     </nav>
                     <div className="flex items-center gap-3">
                         <ModeToggle />
-                        <Link href="/login">
-                            <Button variant="ghost" size="sm">Log In</Button>
-                        </Link>
-                        <Link href="/register">
-                            <Button size="sm" className="rounded-full shadow-lg shadow-primary/20">
-                                Get Started <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                            </Button>
-                        </Link>
+                        <div className="hidden sm:flex items-center gap-3">
+                            <Link href="/login">
+                                <Button variant="ghost" size="sm">Log In</Button>
+                            </Link>
+                            <Link href="/register">
+                                <Button size="sm" className="rounded-full shadow-lg shadow-primary/20">
+                                    Get Started <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                                </Button>
+                            </Link>
+                        </div>
+
+                        {/* Mobile Menu Trigger */}
+                        <div className="md:hidden">
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-9 w-9">
+                                        <Menu className="h-5 w-5" />
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                                    <SheetHeader>
+                                        <SheetTitle className="text-left flex items-center gap-2">
+                                            <div className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded font-bold text-xs">
+                                                H
+                                            </div>
+                                            HireMe
+                                        </SheetTitle>
+                                    </SheetHeader>
+                                    <div className="flex flex-col gap-6 pt-12">
+                                        <nav className="flex flex-col gap-4">
+                                            <a href="#features" className="text-lg font-medium hover:text-primary transition-colors">Features</a>
+                                            <a href="#how-it-works" className="text-lg font-medium hover:text-primary transition-colors">How it Works</a>
+                                            <a href="#pricing" className="text-lg font-medium hover:text-primary transition-colors">Pricing</a>
+                                            <a href="#faq" className="text-lg font-medium hover:text-primary transition-colors">FAQ</a>
+                                        </nav>
+                                        <div className="flex flex-col gap-3 pt-6 border-t">
+                                            <Link href="/login" className="w-full">
+                                                <Button variant="outline" className="w-full justify-start py-6 text-base rounded-xl">Log In</Button>
+                                            </Link>
+                                            <Link href="/register" className="w-full">
+                                                <Button className="w-full justify-start py-6 text-base rounded-xl shadow-lg shadow-primary/20">
+                                                    Get Started <ChevronRight className="ml-auto h-4 w-4" />
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
                     </div>
                 </div>
             </header>
 
             <main>
                 {/* ── Hero ─────────────────────────────────────────── */}
-                <section className="relative overflow-hidden pb-20 pt-32 lg:pt-48">
+                <section className="relative overflow-hidden pb-12 pt-24 md:pb-20 md:pt-32 lg:pt-48">
                     {/* Background gradient blobs */}
                     <div className="pointer-events-none absolute inset-x-0 -top-40 -z-10 overflow-hidden blur-3xl">
                         <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary to-[#ff80b5] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" />
@@ -68,8 +116,8 @@ export default function LandingPage() {
                             <Badge variant="secondary" className="mb-6 rounded-full px-4 py-1.5 text-sm font-semibold text-primary">
                                 🚀 The Future of Recruitment is Here
                             </Badge>
-                            <h1 className="text-5xl font-extrabold tracking-tight lg:text-7xl mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
-                                Hire Smarter with <br />
+                            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-7xl mb-6 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 leading-tight">
+                                Hire Smarter with <br className="hidden sm:block" />
                                 <span className="text-primary">AI‑Powered</span> Interviews
                             </h1>
                             <p className="mx-auto max-w-2xl text-lg text-muted-foreground mb-12">

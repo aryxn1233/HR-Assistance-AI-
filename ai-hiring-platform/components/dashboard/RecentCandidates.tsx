@@ -62,67 +62,70 @@ export function RecentCandidates() {
                     <Link href="/recruiter/interviews">View All</Link>
                 </Button>
             </div>
-            <div className="border-border rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[250px]">Candidate</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>AI Score</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {interviews.map((interview) => {
-                            const name = interview.candidate?.user ? `${interview.candidate.user.firstName} ${interview.candidate.user.lastName}` : 'Unknown';
-                            const initials = name.split(" ").map(n => n[0]).join("");
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-slate-50">
+                            <TableRow>
+                                <TableHead className="w-[250px] font-bold text-slate-600">Candidate</TableHead>
+                                <TableHead className="font-bold text-slate-600">Role</TableHead>
+                                <TableHead className="font-bold text-slate-600 px-4">AI Score</TableHead>
+                                <TableHead className="font-bold text-slate-600">Status</TableHead>
+                                <TableHead className="text-right font-bold text-slate-600 px-6">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {interviews.map((interview) => {
+                                const name = interview.candidate?.user ? `${interview.candidate.user.firstName} ${interview.candidate.user.lastName}` : 'Unknown';
+                                const initials = name.split(" ").map(n => n[0]).join("");
 
-                            return (
-                                <TableRow key={interview.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={`/candidates/${interview.candidate?.id}`} className="flex items-center gap-2 hover:text-primary transition-colors">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarImage src={interview.candidate?.user?.avatarUrl} alt={name} />
-                                                <AvatarFallback>{initials}</AvatarFallback>
-                                            </Avatar>
-                                            <span>{name}</span>
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>{interview.job?.title || 'Unknown Role'}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-bold ${interview.score >= 90 ? "text-green-500" : interview.score >= 80 ? "text-blue-500" : "text-yellow-500"}`}>
-                                                {interview.score}
-                                            </span>
-                                            <span className="text-muted-foreground text-xs">/ 100</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant={
-                                                interview.status === "completed"
-                                                    ? "default"
-                                                    : interview.status === "rejected"
-                                                        ? "destructive"
-                                                        : "secondary"
-                                            }
-                                        >
-                                            {interview.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" asChild>
-                                            <Link href="/recruiter/interviews">
-                                                <ArrowUpRight className="h-4 w-4" />
+                                return (
+                                    <TableRow key={interview.id} className="hover:bg-slate-50 transition-colors">
+                                        <TableCell className="font-medium p-4">
+                                            <Link href={`/candidates/${interview.candidate?.id}`} className="flex items-center gap-3 hover:text-primary transition-colors">
+                                                <Avatar className="h-10 w-10 border-2 border-slate-100">
+                                                    <AvatarImage src={interview.candidate?.user?.avatarUrl} alt={name} />
+                                                    <AvatarFallback className="bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="font-bold text-slate-700">{name}</span>
                                             </Link>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
+                                        </TableCell>
+                                        <TableCell className="text-slate-600">{interview.job?.title || 'Unknown Role'}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2 bg-slate-50 w-fit px-3 py-1 rounded-full border border-slate-100">
+                                                <span className={`font-bold ${interview.score >= 90 ? "text-green-600" : interview.score >= 80 ? "text-blue-600" : "text-amber-600"}`}>
+                                                    {interview.score}
+                                                </span>
+                                                <span className="text-slate-400 text-[10px] font-bold">PTS</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant={
+                                                    interview.status === "completed"
+                                                        ? "default"
+                                                        : interview.status === "rejected"
+                                                            ? "destructive"
+                                                            : "secondary"
+                                                }
+                                                className="rounded-full px-3 py-0.5 font-bold text-[10px] uppercase tracking-wider"
+                                            >
+                                                {interview.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right p-4">
+                                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary" asChild>
+                                                <Link href="/recruiter/interviews">
+                                                    <ArrowUpRight className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
     )

@@ -46,15 +46,15 @@ const chartConfig = {
 
 export function AIAnalyticsCharts() {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
-                <CardHeader>
-                    <CardTitle>AI Score Distribution</CardTitle>
-                    <CardDescription>
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+            <Card className="col-span-1 lg:col-span-4">
+                <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-lg sm:text-xl">AI Score Distribution</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
                         Distribution of candidate scores across recent interviews.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="pl-2">
+                <CardContent className="pl-0 sm:pl-2">
                     <ResponsiveContainer width="100%" height={350}>
                         <BarChart data={scoreData}>
                             <XAxis
@@ -85,18 +85,18 @@ export function AIAnalyticsCharts() {
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
-            <Card className="col-span-3">
-                <CardHeader>
-                    <CardTitle>Skill Evaluation Radar</CardTitle>
-                    <CardDescription>
+            <Card className="col-span-1 lg:col-span-3">
+                <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-lg sm:text-xl">Skill Evaluation Radar</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
                         Average candidate performace by category.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-2 sm:p-6">
                     <ResponsiveContainer width="100%" height={350}>
                         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
                             <PolarGrid stroke="var(--muted-foreground)" strokeOpacity={0.2} />
-                            <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--foreground)", fontSize: 12 }} />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--foreground)", fontSize: 10 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
                             <Radar
                                 name="Average"
