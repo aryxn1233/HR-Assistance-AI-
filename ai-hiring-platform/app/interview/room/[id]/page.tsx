@@ -197,11 +197,11 @@ export default function InterviewRoomPage() {
                     <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-8 animate-pulse shadow-[0_0_50px_rgba(37,99,235,0.4)]">
                         <Mic className="h-10 w-10 text-white" />
                     </div>
-                    <h1 className="text-4xl font-bold mb-4 tracking-tight">Technical Interview Session</h1>
-                    <p className="text-slate-400 mb-12 max-w-sm text-center leading-relaxed text-lg">
+                    <h1 className="text-2xl sm:text-4xl font-bold mb-4 tracking-tight text-center">Technical Interview Session</h1>
+                    <p className="text-slate-400 mb-12 max-w-sm text-center leading-relaxed text-sm sm:text-lg">
                         Meet your AI interviewer. The session is voice-controlled for a natural experience.
                     </p>
-                    <Button onClick={startInterview} size="lg" className="bg-blue-600 hover:bg-blue-700 text-xl px-16 py-10 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 border-b-4 border-blue-800">
+                    <Button onClick={startInterview} size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg sm:text-xl px-8 sm:px-16 py-6 sm:py-10 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 border-b-4 border-blue-800">
                         Join Interview Room
                     </Button>
                 </div>
