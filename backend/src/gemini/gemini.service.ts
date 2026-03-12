@@ -80,13 +80,15 @@ export class GeminiService {
   private openRouter: OpenAI | null = null;
 
   constructor(private configService: ConfigService) {
-    const keys = [
-      this.configService.get<string>('GEMINI_API_KEY'),
-      this.configService.get<string>('GEMINI_API_KEY2'),
-      this.configService.get<string>('GEMINI_API_KEY3'),
-      this.configService.get<string>('GEMINI_API_KEY4'),
-      this.configService.get<string>('GEMINI_API_KEY5'),
-    ].filter((k): k is string => !!k);
+    const keys: string[] = [];
+    let i = 1;
+    while (true) {
+      const keyName = i === 1 ? 'GEMINI_API_KEY' : `GEMINI_API_KEY${i}`;
+      const key = this.configService.get<string>(keyName);
+      if (!key) break;
+      keys.push(key);
+      i++;
+    }
 
     if (keys.length === 0) {
       console.warn('⚠️  No GEMINI_API_KEYs found in environment variables');
