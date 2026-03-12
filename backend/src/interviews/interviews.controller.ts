@@ -14,12 +14,26 @@ import { CombinedAuthGuard } from '../auth/combined-auth.guard';
 
 @Controller('interviews')
 export class InterviewsController {
-  constructor(private readonly interviewsService: InterviewsService) {}
+  constructor(private readonly interviewsService: InterviewsService) { }
 
   @UseGuards(CombinedAuthGuard)
   @Post()
   create(@Body() body: any) {
     return this.interviewsService.create(body);
+  }
+
+  /**
+   * Recruiter invites a candidate to take an interview.
+   * Creates the Interview record + marks the application as eligible.
+   * The candidate sees it in their Upcoming Sessions and can join when ready.
+   */
+  @UseGuards(CombinedAuthGuard)
+  @Post('invite')
+  inviteCandidate(@Body() body: { candidateId: string; applicationId: string }) {
+    return this.interviewsService.inviteCandidate(
+      body.candidateId,
+      body.applicationId,
+    );
   }
 
   @UseGuards(CombinedAuthGuard)

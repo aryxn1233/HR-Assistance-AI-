@@ -12,26 +12,23 @@ import {
     Linkedin,
     Globe,
     Briefcase,
-    GraduationCap,
     Calendar,
     MessageSquare,
     CheckCircle2,
     XCircle,
-    Clock,
     TrendingUp,
-    ExternalLink,
     Video,
     FileText,
-    Loader2
+    Loader2,
+    SendHorizonal,
 } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
-import { getFreshToken } from "@/lib/tokenManager"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 
 export default function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
@@ -39,11 +36,22 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     const [candidate, setCandidate] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
+    // Track which applications already have invites sent (keyed by applicationId)
+    const [invitedApps, setInvitedApps] = useState<Set<string>>(new Set())
+    const [invitingApp, setInvitingApp] = useState<string | null>(null)
 
     const fetchDetails = async () => {
         try {
             const response = await api.get(`/candidates/${id}/details`)
-            setCandidate(response.data)
+            const data = response.data
+            setCandidate(data)
+            // Pre-populate invitedApps from existing interviews already linked to this candidate
+            if (data.interviews?.length > 0) {
+                const alreadyInvited = new Set<string>(
+                    data.interviews.map((iv: any) => iv.applicationId).filter(Boolean)
+                )
+                setInvitedApps(alreadyInvited)
+            }
         } catch (error) {
             console.error("Failed to fetch candidate details", error)
             toast.error("Failed to load candidate profile")
@@ -60,7 +68,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         setUpdating(true)
         try {
             await api.post(`/candidates/applications/${applicationId}/status`, { status })
-            toast.success(`Candidate status updated to ${status}`)
+            toast.success(`Status updated to ${status}`)
             fetchDetails()
         } catch (error) {
             console.error("Failed to update status", error)
@@ -70,31 +78,33 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         }
     }
 
-    const handleStartInterview = async (candidateId: string, jobId: string) => {
-        setUpdating(true)
+    /**
+     * Recruiter sends an interview invitation to the candidate.
+     * POST /interviews/invite creates an Interview record (status=created)
+     * and marks the application as interview_eligible.
+     * The candidate then sees it in their "Upcoming Sessions" and joins when ready.
+     * The recruiter stays on this page — no redirect.
+     */
+    const handleInviteToInterview = async (applicationId: string, jobTitle: string) => {
+        setInvitingApp(applicationId)
         try {
-            const response = await api.post('/interviews', {
-                candidateId,
-                jobId,
-                status: 'created'
+            await api.post('/interviews/invite', {
+                candidateId: candidate.id,
+                applicationId,
             })
-            const data = response.data
-            toast.success("Interview session created. Redirecting to interview room...")
-            // Redirect to the standalone D-ID interview project with context
-            const interviewId = data.question?.interviewId || data.id;
-            const appId = data.applicationId || (candidate.applications?.[0]?.id);
-            const token = await getFreshToken() || '';
-
-            setTimeout(() => {
-                const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
-                window.location.href = `${streamUrl}?applicationId=${appId}&interviewId=${interviewId}&token=${token}`;
-            }, 1000)
+            const name = `${candidate.user?.firstName ?? ''} ${candidate.user?.lastName ?? ''}`.trim() || 'the candidate'
+            toast.success(
+                `🎉 Interview invitation sent to ${name} for "${jobTitle}"! They can join from their dashboard.`,
+                { duration: 6000 }
+            )
+            setInvitedApps(prev => new Set([...prev, applicationId]))
             fetchDetails()
-        } catch (error) {
-            console.error("Failed to create interview", error)
-            toast.error("Failed to initiate interview")
+        } catch (error: any) {
+            console.error("Failed to send interview invitation", error)
+            const msg = error?.response?.data?.message || "Failed to send interview invitation."
+            toast.error(msg)
         } finally {
-            setUpdating(false)
+            setInvitingApp(null)
         }
     }
 
@@ -265,69 +275,93 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                             <Briefcase className="text-primary" size={20} />
                             Active Applications
                         </h3>
-                        {candidate.applications?.map((app: any) => (
-                            <Card key={app.id} className="border-none shadow-sm rounded-3xl overflow-hidden ring-1 ring-slate-100">
-                                <CardHeader className="p-6">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div>
-                                            <CardTitle className="text-lg">{app.job?.title}</CardTitle>
-                                            <CardDescription className="flex items-center gap-2 mt-1 font-medium">
-                                                <Calendar size={14} /> Applied on {new Date(app.createdAt).toLocaleDateString()}
-                                            </CardDescription>
-                                        </div>
-                                        <Badge className="w-fit rounded-full px-4 py-1 font-bold uppercase text-[10px]">
-                                            {app.status.replace('_', ' ')}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-6 bg-slate-50/50 border-t border-slate-100">
-                                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                        <div className="flex items-center gap-8">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] uppercase font-bold text-slate-400">AI Resume Score</span>
-                                                <span className="text-xl font-bold text-primary">{app.resumeScore}%</span>
-                                            </div>
-                                            {app.interviewScore !== null && (
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-bold text-slate-400">Interview Score</span>
-                                                    <span className="text-xl font-bold text-blue-600">{app.interviewScore}%</span>
-                                                </div>
-                                            )}
-                                        </div>
+                        {candidate.applications?.map((app: any) => {
+                            const isInvited = invitedApps.has(app.id)
+                            const isInviting = invitingApp === app.id
+                            const canInvite = app.status !== 'selected' && app.status !== 'rejected' &&
+                                app.status !== 'rejected_ai' && app.status !== 'rejected_post_interview'
 
-                                        <div className="flex items-center gap-3 w-full md:w-auto">
-                                            {app.status !== 'selected' && app.status !== 'rejected' && (
-                                                <>
+                            return (
+                                <Card key={app.id} className="border-none shadow-sm rounded-3xl overflow-hidden ring-1 ring-slate-100">
+                                    <CardHeader className="p-6">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div>
+                                                <CardTitle className="text-lg">{app.job?.title}</CardTitle>
+                                                <CardDescription className="flex items-center gap-2 mt-1 font-medium">
+                                                    <Calendar size={14} /> Applied on {new Date(app.createdAt).toLocaleDateString()}
+                                                </CardDescription>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {isInvited && (
+                                                    <Badge className="rounded-full px-3 py-1 bg-green-100 text-green-700 border-green-200 font-bold text-[10px] uppercase">
+                                                        Invited ✓
+                                                    </Badge>
+                                                )}
+                                                <Badge className="w-fit rounded-full px-4 py-1 font-bold uppercase text-[10px]">
+                                                    {app.status.replace(/_/g, ' ')}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-6 bg-slate-50/50 border-t border-slate-100">
+                                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                            <div className="flex items-center gap-8">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] uppercase font-bold text-slate-400">AI Resume Score</span>
+                                                    <span className="text-xl font-bold text-primary">{app.resumeScore}%</span>
+                                                </div>
+                                                {app.interviewScore !== null && (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] uppercase font-bold text-slate-400">Interview Score</span>
+                                                        <span className="text-xl font-bold text-blue-600">{app.interviewScore}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {canInvite && (
+                                                <div className="flex items-center gap-3 w-full md:w-auto">
                                                     <Button
                                                         variant="outline"
                                                         className="flex-1 md:flex-none rounded-xl border-red-200 text-red-600 hover:bg-red-50 font-bold"
                                                         onClick={() => handleStatusUpdate(app.id, 'rejected')}
-                                                        disabled={updating}
+                                                        disabled={updating || isInviting}
                                                     >
                                                         <XCircle className="mr-2 h-4 w-4" /> Reject
                                                     </Button>
+
+                                                    {/* Interview Invite Button */}
                                                     <Button
                                                         variant="outline"
-                                                        className="flex-1 md:flex-none rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-bold"
-                                                        onClick={() => handleStartInterview(candidate.id, app.jobId)}
-                                                        disabled={updating}
+                                                        className={`flex-1 md:flex-none rounded-xl font-bold transition-all ${isInvited
+                                                                ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
+                                                                : 'border-primary/20 text-primary hover:bg-primary/5'
+                                                            }`}
+                                                        onClick={() => !isInvited && handleInviteToInterview(app.id, app.job?.title || 'Role')}
+                                                        disabled={isInviting || updating || isInvited}
                                                     >
-                                                        <Video className="mr-2 h-4 w-4" /> Interview
+                                                        {isInviting ? (
+                                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                                                        ) : isInvited ? (
+                                                            <><CheckCircle2 className="mr-2 h-4 w-4" /> Invited ✓</>
+                                                        ) : (
+                                                            <><SendHorizonal className="mr-2 h-4 w-4" /> Invite to Interview</>
+                                                        )}
                                                     </Button>
+
                                                     <Button
                                                         className="flex-1 md:flex-none rounded-xl font-bold shadow-lg shadow-primary/20"
                                                         onClick={() => handleStatusUpdate(app.id, 'selected')}
-                                                        disabled={updating}
+                                                        disabled={updating || isInviting}
                                                     >
                                                         <CheckCircle2 className="mr-2 h-4 w-4" /> Hire Direct
                                                     </Button>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
                     </div>
 
                     {/* Interview History */}
@@ -356,6 +390,12 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                     <Separator />
                                     <CardContent className="p-5 space-y-3">
                                         <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-slate-500">Status</span>
+                                            <Badge variant="secondary" className="rounded-full text-[10px] px-2 uppercase">
+                                                {interview.status}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between">
                                             <span className="text-xs font-bold text-slate-500">Fit Decision</span>
                                             <Badge variant={interview.fitDecision === 'YES' ? 'default' : 'destructive'} className="rounded-full text-[10px] px-2">
                                                 {interview.fitDecision || 'PENDING'}
@@ -365,13 +405,13 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             <span className="text-xs font-bold text-slate-500">Join probability</span>
                                             <span className="text-xs font-bold text-green-600">{interview.joinProbability}%</span>
                                         </div>
-                                        <div className="pt-2">
-                                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                                                <MessageSquare size={12} /> Interview Session Transcript
-                                            </h4>
-                                            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                                                {interview.transcript && interview.transcript.length > 0 ? (
-                                                    interview.transcript.map((msg: any, idx: number) => (
+                                        {interview.transcript && interview.transcript.length > 0 && (
+                                            <div className="pt-2">
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                                                    <MessageSquare size={12} /> Transcript
+                                                </h4>
+                                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                                    {interview.transcript.map((msg: any, idx: number) => (
                                                         <div key={idx} className={`flex flex-col ${msg.speaker === 'Candidate' ? 'items-end' : 'items-start'}`}>
                                                             <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 px-1">
                                                                 {msg.speaker === 'AI' ? 'AI Recruiter' : 'Candidate'}
@@ -383,14 +423,10 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                                                 {msg.message}
                                                             </div>
                                                         </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-center py-8 text-slate-400 text-xs italic">
-                                                        No transcript available for this session.
-                                                    </div>
-                                                )}
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))}
@@ -398,6 +434,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                 <div className="col-span-2 p-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                                     <Video className="mx-auto h-8 w-8 text-slate-300 mb-3" />
                                     <p className="text-sm font-medium text-slate-500">No interviews conducted yet.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Use the "Invite to Interview" button above to send an invitation.</p>
                                 </div>
                             )}
                         </div>
@@ -407,4 +444,3 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         </div>
     )
 }
-

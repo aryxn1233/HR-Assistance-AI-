@@ -214,6 +214,72 @@ export class InterviewsService {
     ) as unknown as Promise<Interview>;
   }
 
+  /**
+   * Recruiter invites a candidate to take an interview for a specific application.
+   * Creates an Interview record (status=created) + marks the application as eligible.
+   * The candidate then sees it in their "Upcoming Sessions" and can join when ready.
+   */
+  async inviteCandidate(
+    candidateId: string,
+    applicationId: string,
+  ): Promise<{ success: boolean; interviewId: string; message: string }> {
+    // 1. Find the application
+    const application = await this.applicationsRepository.findOne({
+      where: { id: applicationId, candidateId },
+      relations: ['job', 'candidate', 'candidate.user'],
+    });
+
+    if (!application) {
+      throw new NotFoundException(
+        `Application not found for candidate ${candidateId}`,
+      );
+    }
+
+    // 2. Check if an interview already exists for this application
+    const existingInterview = await this.interviewsRepository.findOne({
+      where: { applicationId },
+    });
+    if (existingInterview) {
+      this.logger.log(
+        `Interview already exists for application ${applicationId}: ${existingInterview.id}`,
+      );
+      return {
+        success: true,
+        interviewId: existingInterview.id,
+        message: 'An interview invitation was already sent for this application.',
+      };
+    }
+
+    // 3. Mark the application as interview eligible and unlocked
+    await this.applicationsRepository.update(applicationId, {
+      status: ApplicationStatus.INTERVIEW_ELIGIBLE,
+      interviewUnlocked: true,
+    });
+
+    // 4. Create the Interview record (status=created, not yet started)
+    const newInterview = this.interviewsRepository.create({
+      applicationId,
+      jobId: application.jobId,
+      candidateId: application.candidateId,
+      status: InterviewStatus.CREATED,
+      score: 0,
+      currentQuestionIndex: 0,
+      history: [],
+      transcript: [],
+    });
+    await this.interviewsRepository.save(newInterview);
+
+    this.logger.log(
+      `Recruiter invited candidate ${candidateId} for interview ${newInterview.id} (job: ${application.job?.title})`,
+    );
+
+    return {
+      success: true,
+      interviewId: newInterview.id,
+      message: `Interview invitation sent. Candidate can now join the interview for "${application.job?.title ?? 'the role'}".`,
+    };
+  }
+
   async findAll(user?: any): Promise<any[]> {
     const query = this.interviewsRepository
       .createQueryBuilder('interview')
