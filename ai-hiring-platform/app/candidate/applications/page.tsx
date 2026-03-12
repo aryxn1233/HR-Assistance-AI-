@@ -99,63 +99,65 @@ export default function MyApplicationsPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader className="bg-muted/30">
-                            <TableRow className="border-none hover:bg-transparent">
-                                <TableHead className="pl-6 font-bold">Company</TableHead>
-                                <TableHead className="font-bold">Role</TableHead>
-                                <TableHead className="font-bold">Applied Date</TableHead>
-                                <TableHead className="font-bold">Status</TableHead>
-                                <TableHead className="font-bold">AI Score</TableHead>
-                                <TableHead className="text-right pr-6 font-bold">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredApplications.map((app) => (
-                                <TableRow key={app.id} className="group border-b border-muted/50 hover:bg-muted/20 transition-colors">
-                                    <TableCell className="pl-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center font-bold text-primary">
-                                                {app.job?.department?.[0] || 'J'}
-                                            </div>
-                                            <span className="font-semibold">{app.job?.department || "N/A"}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-medium text-foreground/80">{app.job?.title}</TableCell>
-                                    <TableCell className="text-muted-foreground">{new Date(app.createdAt).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={`rounded-full px-3 py-0.5 font-semibold text-[10px] uppercase tracking-wider ${app.status === "Interviewing" ? "bg-purple-500/10 text-purple-600 border-purple-500/20" :
-                                                app.status === "Screening" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
-                                                    app.status === "Rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                                                        app.status === "Shortlisted" ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                                                            "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                                }`}
-                                        >
-                                            {app.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full ${app.resumeScore >= 80 ? "bg-green-500" : app.resumeScore >= 70 ? "bg-amber-500" : "bg-destructive"}`}
-                                                    style={{ width: `${app.resumeScore}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-sm font-bold">{app.resumeScore}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors">
-                                            <ArrowUpRight className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader className="bg-muted/30">
+                                <TableRow className="border-none hover:bg-transparent">
+                                    <TableHead className="pl-6 font-bold whitespace-nowrap">Company</TableHead>
+                                    <TableHead className="font-bold whitespace-nowrap">Role</TableHead>
+                                    <TableHead className="font-bold whitespace-nowrap">Applied Date</TableHead>
+                                    <TableHead className="font-bold whitespace-nowrap">Status</TableHead>
+                                    <TableHead className="font-bold whitespace-nowrap">AI Score</TableHead>
+                                    <TableHead className="text-right pr-6 font-bold whitespace-nowrap">Action</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredApplications.map((app) => (
+                                    <TableRow key={app.id} className="group border-b border-muted/50 hover:bg-muted/20 transition-colors">
+                                        <TableCell className="pl-6 py-4">
+                                            <div className="flex items-center gap-3 whitespace-nowrap">
+                                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center font-bold text-primary">
+                                                    {app.job?.department?.[0] || 'J'}
+                                                </div>
+                                                <span className="font-semibold">{app.job?.department || "N/A"}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-medium text-foreground/80 whitespace-nowrap">{app.job?.title}</TableCell>
+                                        <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(app.createdAt).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant="outline"
+                                                className={`rounded-full px-3 py-0.5 font-semibold text-[10px] uppercase tracking-wider whitespace-nowrap ${app.status === "Interviewing" ? "bg-purple-500/10 text-purple-600 border-purple-500/20" :
+                                                    app.status === "Screening" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
+                                                        app.status === "Rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                                                            app.status === "Shortlisted" ? "bg-green-500/10 text-green-600 border-green-500/20" :
+                                                                "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                                    }`}
+                                            >
+                                                {app.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2 whitespace-nowrap">
+                                                <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full ${app.resumeScore >= 80 ? "bg-green-500" : app.resumeScore >= 70 ? "bg-amber-500" : "bg-destructive"}`}
+                                                        style={{ width: `${app.resumeScore}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-sm font-bold">{app.resumeScore}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors">
+                                                <ArrowUpRight className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </motion.div>
