@@ -235,20 +235,28 @@ export class InterviewsService {
       );
     }
 
-    // 2. Check if an interview already exists for this application
+    // 2. Check if an ACTIVE (non-completed) interview already exists for this application.
+    //    If the previous interview is completed, a recruiter can always invite the candidate
+    //    for a fresh round (e.g. second interview, different position, etc.)
     const existingInterview = await this.interviewsRepository.findOne({
       where: { applicationId },
+      order: { createdAt: 'DESC' }, // get the latest one
     });
-    if (existingInterview) {
+    const activeStatuses: string[] = [
+      InterviewStatus.CREATED,
+      InterviewStatus.IN_PROGRESS,
+    ];
+    if (existingInterview && activeStatuses.includes(existingInterview.status as string)) {
       this.logger.log(
-        `Interview already exists for application ${applicationId}: ${existingInterview.id}`,
+        `Active interview already exists for application ${applicationId}: ${existingInterview.id} (status=${existingInterview.status}). Returning existing invite.`,
       );
       return {
         success: true,
         interviewId: existingInterview.id,
-        message: 'An interview invitation was already sent for this application.',
+        message: 'An active interview invitation already exists for this application.',
       };
     }
+
 
     // 3. Mark the application as interview eligible and unlocked
     await this.applicationsRepository.update(applicationId, {

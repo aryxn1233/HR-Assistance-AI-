@@ -45,13 +45,15 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             const response = await api.get(`/candidates/${id}/details`)
             const data = response.data
             setCandidate(data)
-            // Pre-populate invitedApps from existing interviews already linked to this candidate
-            if (data.interviews?.length > 0) {
-                const alreadyInvited = new Set<string>(
-                    data.interviews.map((iv: any) => iv.applicationId).filter(Boolean)
-                )
-                setInvitedApps(alreadyInvited)
-            }
+            // Pre-populate invitedApps only from ACTIVE (non-completed) interviews.
+            // Completed interviews should NOT block a fresh re-invite.
+            const alreadyInvited = new Set<string>(
+                data.interviews
+                    .filter((iv: any) => iv.status === 'created' || iv.status === 'in_progress')
+                    .map((iv: any) => iv.applicationId)
+                    .filter(Boolean)
+            )
+            setInvitedApps(alreadyInvited)
         } catch (error) {
             console.error("Failed to fetch candidate details", error)
             toast.error("Failed to load candidate profile")
@@ -278,8 +280,12 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                         {candidate.applications?.map((app: any) => {
                             const isInvited = invitedApps.has(app.id)
                             const isInviting = invitingApp === app.id
-                            const canInvite = app.status !== 'selected' && app.status !== 'rejected' &&
-                                app.status !== 'rejected_ai' && app.status !== 'rejected_post_interview'
+                            // ANY applicant can be invited — recruiter decides who gets an interview
+                            // even if they were previously rejected at resume or interview stage.
+                            const canInvite = true
+                            const canRejectOrHire = !['rejected', 'rejected_ai', 'rejected_post_interview', 'selected'].includes(
+                                app.status.toLowerCase()
+                            )
 
                             return (
                                 <Card key={app.id} className="border-none shadow-sm rounded-3xl overflow-hidden ring-1 ring-slate-100">
@@ -318,45 +324,48 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                                 )}
                                             </div>
 
-                                            {canInvite && (
-                                                <div className="flex items-center gap-3 w-full md:w-auto">
-                                                    <Button
-                                                        variant="outline"
-                                                        className="flex-1 md:flex-none rounded-xl border-red-200 text-red-600 hover:bg-red-50 font-bold"
-                                                        onClick={() => handleStatusUpdate(app.id, 'rejected')}
-                                                        disabled={updating || isInviting}
-                                                    >
-                                                        <XCircle className="mr-2 h-4 w-4" /> Reject
-                                                    </Button>
+                                            <div className="flex items-center gap-3 w-full md:w-auto flex-wrap justify-end">
+                                                {/* Reject / Hire Direct — only for active (non-terminated) applications */}
+                                                {canRejectOrHire && (
+                                                    <>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="flex-1 md:flex-none rounded-xl border-red-200 text-red-600 hover:bg-red-50 font-bold"
+                                                            onClick={() => handleStatusUpdate(app.id, 'rejected')}
+                                                            disabled={updating || isInviting}
+                                                        >
+                                                            <XCircle className="mr-2 h-4 w-4" /> Reject
+                                                        </Button>
+                                                        <Button
+                                                            className="flex-1 md:flex-none rounded-xl font-bold shadow-lg shadow-primary/20"
+                                                            onClick={() => handleStatusUpdate(app.id, 'selected')}
+                                                            disabled={updating || isInviting}
+                                                        >
+                                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Hire Direct
+                                                        </Button>
+                                                    </>
+                                                )}
 
-                                                    {/* Interview Invite Button */}
-                                                    <Button
-                                                        variant="outline"
-                                                        className={`flex-1 md:flex-none rounded-xl font-bold transition-all ${isInvited
-                                                                ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
-                                                                : 'border-primary/20 text-primary hover:bg-primary/5'
-                                                            }`}
-                                                        onClick={() => !isInvited && handleInviteToInterview(app.id, app.job?.title || 'Role')}
-                                                        disabled={isInviting || updating || isInvited}
-                                                    >
-                                                        {isInviting ? (
-                                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
-                                                        ) : isInvited ? (
-                                                            <><CheckCircle2 className="mr-2 h-4 w-4" /> Invited ✓</>
-                                                        ) : (
-                                                            <><SendHorizonal className="mr-2 h-4 w-4" /> Invite to Interview</>
-                                                        )}
-                                                    </Button>
+                                                {/* Interview Invite — always available for ANY applicant */}
+                                                <Button
+                                                    variant="outline"
+                                                    className={`flex-1 md:flex-none rounded-xl font-bold transition-all ${isInvited
+                                                        ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
+                                                        : 'border-primary/20 text-primary hover:bg-primary/5'
+                                                        }`}
+                                                    onClick={() => !isInvited && handleInviteToInterview(app.id, app.job?.title || 'Role')}
+                                                    disabled={isInviting || updating || isInvited}
+                                                >
+                                                    {isInviting ? (
+                                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                                                    ) : isInvited ? (
+                                                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Invited ✓</>
+                                                    ) : (
+                                                        <><SendHorizonal className="mr-2 h-4 w-4" /> Invite to Interview</>
+                                                    )}
+                                                </Button>
 
-                                                    <Button
-                                                        className="flex-1 md:flex-none rounded-xl font-bold shadow-lg shadow-primary/20"
-                                                        onClick={() => handleStatusUpdate(app.id, 'selected')}
-                                                        disabled={updating || isInviting}
-                                                    >
-                                                        <CheckCircle2 className="mr-2 h-4 w-4" /> Hire Direct
-                                                    </Button>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
