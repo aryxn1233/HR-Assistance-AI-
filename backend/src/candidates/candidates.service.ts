@@ -420,9 +420,23 @@ export class CandidatesService {
 
   // New Detailed Methods for Recruiter
   async findOneWithDetails(id: string): Promise<any> {
+    // ... select same
     const candidate = await this.candidatesRepository.findOne({
       where: { id },
       relations: ['user', 'experiences'],
+      select: {
+        id: true,
+        userId: true,
+        title: true,
+        bio: true,
+        location: true,
+        skills: true,
+        experienceYears: true,
+        linkedinUrl: true,
+        portfolioUrl: true,
+        resumeUrl: true,
+        createdAt: true,
+      }
     });
 
     if (!candidate) throw new NotFoundException('Candidate not found');
@@ -437,6 +451,7 @@ export class CandidatesService {
       where: { candidateId: candidate.id },
       relations: ['job', 'report'],
       order: { createdAt: 'DESC' },
+      take: 5,
     });
 
     return {
@@ -444,6 +459,15 @@ export class CandidatesService {
       applications,
       interviews,
     };
+  }
+
+  async getResume(id: string): Promise<{ resumeText: string }> {
+    const candidate = await this.candidatesRepository.findOne({
+      where: { id },
+      select: { resumeText: true },
+    });
+    if (!candidate) throw new NotFoundException('Candidate not found');
+    return { resumeText: candidate.resumeText || '' };
   }
 
   async addExperience(

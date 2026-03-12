@@ -15,9 +15,11 @@ import { GeminiModule } from './gemini/gemini.module';
 import { DIdModule } from './did/did.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { InterviewAgentModule } from './interview-agent/interview-agent.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
+    CommonModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -31,8 +33,7 @@ import { InterviewAgentModule } from './interview-agent/interview-agent.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        // IMPORTANT: synchronize is disabled in production to prevent accidental data loss.
-        // Run 'typeorm migration:run' to apply schema changes in production.
+        // ... rest same
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         ssl:
           configService.get<string>('DB_HOST')?.includes('render.com') ||

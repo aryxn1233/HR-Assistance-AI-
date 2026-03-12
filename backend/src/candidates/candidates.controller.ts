@@ -20,7 +20,7 @@ import { extname } from 'path';
 
 @Controller('candidates')
 export class CandidatesController {
-  constructor(private readonly candidatesService: CandidatesService) {}
+  constructor(private readonly candidatesService: CandidatesService) { }
 
   @UseGuards(CombinedAuthGuard)
   @Post('avatar-upload')
@@ -160,6 +160,12 @@ export class CandidatesController {
   @Get(':id/details')
   getCandidateDetails(@Param('id') id: string) {
     return this.candidatesService.findOneWithDetails(id);
+  }
+
+  @UseGuards(CombinedAuthGuard)
+  @Get(':id/resume')
+  getResume(@Param('id') id: string) {
+    return this.candidatesService.getResume(id);
   }
 
   @UseGuards(CombinedAuthGuard)

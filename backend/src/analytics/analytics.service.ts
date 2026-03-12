@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from '../jobs/job.entity';
 import { Candidate } from '../candidates/candidate.entity';
 import { Interview } from '../interviews/entities/interview.entity';
+import { CacheManagerService } from '../common/cache-manager.service';
 
 @Injectable()
 export class AnalyticsService {
@@ -15,9 +15,14 @@ export class AnalyticsService {
     private candidatesRepository: Repository<Candidate>,
     @InjectRepository(Interview)
     private interviewsRepository: Repository<Interview>,
-  ) {}
+    private cacheManager: CacheManagerService,
+  ) { }
 
   async getDashboardMetrics() {
+    const cacheKey = 'dashboard_metrics';
+    const cachedData = this.cacheManager.get(cacheKey);
+    if (cachedData) return cachedData;
+
     const totalCandidates = await this.candidatesRepository.count();
     const activeJobs = await this.jobsRepository.count({
       where: { status: 'Active' },
@@ -26,22 +31,16 @@ export class AnalyticsService {
       where: { status: 'completed' as any },
     }); // Standardized to lowercase
 
-    // Average Score
-    const interviewsWithScore = await this.interviewsRepository
+    // Average Score optimized via SQL Aggregate function
+    const result = await this.interviewsRepository
       .createQueryBuilder('interview')
+      .select('AVG(interview.score)', 'avgScore')
       .where('interview.score > 0')
-      .getMany();
+      .getRawOne();
 
-    const totalScore = interviewsWithScore.reduce(
-      (sum, interview) => sum + interview.score,
-      0,
-    );
-    const averageScore =
-      interviewsWithScore.length > 0
-        ? Math.round(totalScore / interviewsWithScore.length)
-        : 0;
+    const averageScore = Math.round(parseFloat(result?.avgScore) || 0);
 
-    return {
+    const metrics = {
       totalCandidates,
       activeJobs,
       completedInterviews,
@@ -54,5 +53,10 @@ export class AnalyticsService {
         acceptance: { value: 5, label: 'from last month', positive: false },
       },
     };
+
+    // Cache for 5 minutes
+    this.cacheManager.set(cacheKey, metrics, 300);
+
+    return metrics;
   }
 }

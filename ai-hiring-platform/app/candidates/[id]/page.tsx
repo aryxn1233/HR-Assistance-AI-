@@ -13,14 +13,18 @@ import {
     Globe,
     Briefcase,
     Calendar,
-    MessageSquare,
-    CheckCircle2,
-    XCircle,
-    TrendingUp,
     Video,
-    FileText,
     Loader2,
-    SendHorizonal,
+    MessageSquare,
+    ChevronDown,
+    MapPin as MapPinIcon,
+    Clock,
+    Download,
+    TrendingUp,
+    XCircle,
+    CheckCircle2,
+    FileText,
+    SendHorizonal
 } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
@@ -36,6 +40,8 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     const [candidate, setCandidate] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
+    const [resumeText, setResumeText] = useState<string | null>(null)
+    const [fetchingResume, setFetchingResume] = useState(false)
     // Track which applications already have invites sent (keyed by applicationId)
     const [invitedApps, setInvitedApps] = useState<Set<string>>(new Set())
     const [invitingApp, setInvitingApp] = useState<string | null>(null)
@@ -49,9 +55,9 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             // Completed interviews should NOT block a fresh re-invite.
             const alreadyInvited = new Set<string>(
                 data.interviews
-                    .filter((iv: any) => iv.status === 'created' || iv.status === 'in_progress')
-                    .map((iv: any) => iv.applicationId)
-                    .filter(Boolean)
+                    ?.filter((iv: any) => iv.status === 'created' || iv.status === 'in_progress')
+                    ?.map((iv: any) => iv.applicationId)
+                    ?.filter(Boolean) || []
             )
             setInvitedApps(alreadyInvited)
         } catch (error) {
@@ -59,6 +65,20 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             toast.error("Failed to load candidate profile")
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchResume = async () => {
+        if (resumeText || fetchingResume) return
+        setFetchingResume(true)
+        try {
+            const response = await api.get(`/candidates/${id}/resume`)
+            setResumeText(response.data.resumeText)
+        } catch (error) {
+            console.error("Failed to fetch resume", error)
+            toast.error("Failed to load resume content")
+        } finally {
+            setFetchingResume(false)
         }
     }
 
@@ -80,13 +100,6 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         }
     }
 
-    /**
-     * Recruiter sends an interview invitation to the candidate.
-     * POST /interviews/invite creates an Interview record (status=created)
-     * and marks the application as interview_eligible.
-     * The candidate then sees it in their "Upcoming Sessions" and joins when ready.
-     * The recruiter stays on this page — no redirect.
-     */
     const handleInviteToInterview = async (applicationId: string, jobTitle: string) => {
         setInvitingApp(applicationId)
         try {
@@ -193,27 +206,33 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             <a href={candidate.portfolioUrl} target="_blank"><Globe className="h-4 w-4" /></a>
                                         </Button>
                                     )}
-                                    {candidate.resumeText ? (
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1">
-                                                    <FileText className="h-4 w-4" /> View Resume
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                                                <DialogHeader>
-                                                    <DialogTitle>Candidate Resume</DialogTitle>
-                                                </DialogHeader>
-                                                <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed p-4 bg-slate-50 border border-slate-100 rounded-xl dark:bg-card dark:border-border dark:text-muted-foreground">
-                                                    {candidate.resumeText}
+
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="rounded-xl gap-2 font-bold text-xs flex-1"
+                                                onClick={fetchResume}
+                                            >
+                                                <FileText className="h-4 w-4" /> View Resume
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                            <DialogHeader>
+                                                <DialogTitle>Candidate Resume</DialogTitle>
+                                            </DialogHeader>
+                                            {fetchingResume ? (
+                                                <div className="flex flex-col items-center justify-center p-12">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                                                    <p className="text-sm font-medium text-slate-400">Loading resume content...</p>
                                                 </div>
-                                            </DialogContent>
-                                        </Dialog>
-                                    ) : (
-                                        <Button variant="outline" className="rounded-xl gap-2 font-bold text-xs flex-1" disabled>
-                                            <FileText className="h-4 w-4 text-slate-400" /> No Resume Available
-                                        </Button>
-                                    )}
+                                            ) : (
+                                                <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed p-4 bg-slate-50 border border-slate-100 rounded-xl dark:bg-card dark:border-border dark:text-muted-foreground">
+                                                    {resumeText || "No resume content available."}
+                                                </div>
+                                            )}
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </div>
                         </CardContent>
@@ -280,9 +299,6 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                         {candidate.applications?.map((app: any) => {
                             const isInvited = invitedApps.has(app.id)
                             const isInviting = invitingApp === app.id
-                            // ANY applicant can be invited — recruiter decides who gets an interview
-                            // even if they were previously rejected at resume or interview stage.
-                            const canInvite = true
                             const canRejectOrHire = !['rejected', 'rejected_ai', 'rejected_post_interview', 'selected'].includes(
                                 app.status.toLowerCase()
                             )
@@ -325,7 +341,6 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             </div>
 
                                             <div className="flex items-center gap-3 w-full md:w-auto flex-wrap justify-end">
-                                                {/* Reject / Hire Direct — only for active (non-terminated) applications */}
                                                 {canRejectOrHire && (
                                                     <>
                                                         <Button
@@ -346,7 +361,6 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                                     </>
                                                 )}
 
-                                                {/* Interview Invite — always available for ANY applicant */}
                                                 <Button
                                                     variant="outline"
                                                     className={`flex-1 md:flex-none rounded-xl font-bold transition-all ${isInvited
@@ -364,7 +378,6 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                                         <><SendHorizonal className="mr-2 h-4 w-4" /> Invite to Interview</>
                                                     )}
                                                 </Button>
-
                                             </div>
                                         </div>
                                     </CardContent>
@@ -414,28 +427,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                             <span className="text-xs font-bold text-slate-500">Join probability</span>
                                             <span className="text-xs font-bold text-green-600">{interview.joinProbability}%</span>
                                         </div>
-                                        {interview.transcript && interview.transcript.length > 0 && (
-                                            <div className="pt-2">
-                                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                                                    <MessageSquare size={12} /> Transcript
-                                                </h4>
-                                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                                                    {interview.transcript.map((msg: any, idx: number) => (
-                                                        <div key={idx} className={`flex flex-col ${msg.speaker === 'Candidate' ? 'items-end' : 'items-start'}`}>
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 px-1">
-                                                                {msg.speaker === 'AI' ? 'AI Recruiter' : 'Candidate'}
-                                                            </span>
-                                                            <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.speaker === 'Candidate'
-                                                                ? 'bg-blue-600 text-white rounded-tr-none'
-                                                                : 'bg-slate-100 text-slate-800 rounded-tl-none'
-                                                                }`}>
-                                                                {msg.message}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+                                        <TranscriptToggle transcript={interview.transcript} />
                                     </CardContent>
                                 </Card>
                             ))}
@@ -452,4 +444,41 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             </div>
         </div>
     )
+}
+
+function TranscriptToggle({ transcript }: { transcript: any[] }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    if (!transcript || transcript.length === 0) return null;
+
+    return (
+        <div className="pt-2">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-xs font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-2 mb-2"
+            >
+                <MessageSquare size={12} />
+                {isOpen ? "Hide Transcript" : "View Transcript"}
+                <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {isOpen && (
+                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar animate-in slide-in-from-top-1 duration-200">
+                    {transcript.map((msg: any, idx: number) => (
+                        <div key={idx} className={`flex flex-col ${msg.speaker === 'Candidate' ? 'items-end' : 'items-start'}`}>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 px-1">
+                                {msg.speaker === 'AI' ? 'AI Recruiter' : 'Candidate'}
+                            </span>
+                            <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.speaker === 'Candidate'
+                                ? 'bg-blue-600 text-white rounded-tr-none'
+                                : 'bg-slate-100 text-slate-800 rounded-tl-none'
+                                }`}>
+                                {msg.message}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }

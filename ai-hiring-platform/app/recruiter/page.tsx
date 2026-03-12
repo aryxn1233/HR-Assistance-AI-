@@ -1,16 +1,39 @@
-"use client"
+import { auth } from "@clerk/nextjs/server";
+import { RecruiterDashboardContent } from "@/components/dashboard/RecruiterDashboardContent";
 
-import { useEffect, useState } from "react";
-import { AIAnalyticsCharts } from "@/components/dashboard/AIAnalyticsCharts";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { RecentCandidates } from "@/components/dashboard/RecentCandidates";
-import { Users, Video, Brain, Briefcase } from "lucide-react";
-import LiveInterviews from "@/components/dashboard/LiveInterviews";
-import { motion } from "framer-motion";
-import api from "@/lib/api";
+async function getDashboardMetrics(token: string) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3003';
+  try {
+    const response = await fetch(`${API_URL}/analytics/dashboard`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      next: { revalidate: 300 } // Cache results for 5 mins to match backend
+    });
 
-export default function DashboardPage() {
-  const [metrics, setMetrics] = useState({
+    if (!response.ok) {
+      console.error("Dashboard fetch failed:", response.statusText);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch dashboard metrics on server:", error);
+    return null;
+  }
+}
+
+export default async function DashboardPage() {
+  const { getToken } = await auth();
+  const token = await getToken();
+
+  let metrics = null;
+  if (token) {
+    metrics = await getDashboardMetrics(token);
+  }
+
+  // Fallback metrics if fetch fails
+  const fallbackMetrics = {
     totalCandidates: 0,
     activeJobs: 0,
     completedInterviews: 0,
@@ -21,72 +44,7 @@ export default function DashboardPage() {
       score: { value: 0, label: "improvement", positive: true },
       acceptance: { value: 0, label: "from last month", positive: false }
     }
-  });
-  const [loading, setLoading] = useState(true);
+  };
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const response = await api.get('/analytics/dashboard');
-        setMetrics(response.data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard metrics", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMetrics();
-  }, []);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-1 flex-col gap-4 p-4 pt-0"
-    >
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Total Candidates"
-          value={metrics.totalCandidates}
-          description="Candidates in pipeline"
-          icon={Users}
-          trend={metrics.trends?.candidates}
-          loading={loading}
-        />
-        <MetricCard
-          title="Active Jobs"
-          value={metrics.activeJobs}
-          description="Open positions"
-          icon={Briefcase}
-          loading={loading}
-        />
-        <MetricCard
-          title="Completed Interviews"
-          value={metrics.completedInterviews}
-          description="Total interviews conducted"
-          icon={Video}
-          trend={metrics.trends?.interviews}
-          loading={loading}
-        />
-        <MetricCard
-          title="Average AI Score"
-          value={metrics.averageScore}
-          description="Across all roles"
-          icon={Brain}
-          trend={metrics.trends?.score}
-          loading={loading}
-        />
-      </div>
-
-      <LiveInterviews />
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4 lg:col-span-7">
-          <AIAnalyticsCharts />
-        </div>
-      </div>
-      <RecentCandidates />
-    </motion.div>
-  );
+  return <RecruiterDashboardContent initialMetrics={metrics || fallbackMetrics} />;
 }
