@@ -148,11 +148,11 @@ export class ScoringService {
 
     // Soft Boost Rules
     if (projectRelevance >= 75) {
-      score += 5;
+      score += 8;
     }
 
     if (skillMatch >= 65 && experienceMatch >= 60) {
-      score += 3;
+      score += 5;
     }
 
     if (score >= 65 && score <= 69) {
