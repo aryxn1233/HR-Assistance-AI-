@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Interview, InterviewStatus } from './entities/interview.entity';
 import {
   InterviewQuestion,
@@ -56,7 +56,7 @@ export class InterviewsService {
     private liveInterviewService: LiveInterviewService,
     private liveInterviewGateway: LiveInterviewGateway,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async startInterviewByApplication(
     applicationId: string,
@@ -461,7 +461,7 @@ export class InterviewsService {
       );
     } catch (e) {
       console.error(
-        'OpenAI evaluation failed. Continuing with fallback zeros.',
+        'Gemini evaluation failed. Continuing with fallback zeros.',
         e,
       );
       evaluation = {
@@ -571,7 +571,7 @@ export class InterviewsService {
     let reportData: any;
 
     if (candidateAnswersCount < 3) {
-      console.log(
+      this.logger.warn(
         `Interview ${interview.id} has only ${candidateAnswersCount} answers. Bypassing AI evaluation.`,
       );
       reportData = {
@@ -584,14 +584,42 @@ export class InterviewsService {
         strengths: ['Interview completed'],
         weaknesses: ['Interview too short for meaningful analysis'],
         detailed_feedback:
-          'Score: 0\nFeedback: The interview was completed too quickly with insufficient interaction. Minimum 3 responses are required for AI evaluation.\nStrengths: \nAreas for Improvement: Complete the full interview next time.',
+          'Score: 0\nFeedback: The interview was completed too quickly with insufficient interaction. Minimum 3 responses are required for AI evaluation.',
         fit_for_role: 'NO',
         joining_probability_percent: 0,
       };
     } else {
+      // Load per-answer evaluations from DB for accurate scoring
+      const interviewQuestions = await this.questionsRepository.find({
+        where: { interviewId: interview.id },
+        order: { orderNumber: 'ASC' },
+      });
+      const questionIds = interviewQuestions.map((q) => q.id);
+      const answers =
+        questionIds.length > 0
+          ? await this.answersRepository.find({
+            where: { questionId: In(questionIds) },
+          })
+          : [];
+
+      const evaluations = answers.map((a) => ({
+        technicalScore: a.technicalScore ?? 0,
+        accuracyScore: a.accuracyScore ?? 0,
+        communicationScore: a.communicationScore ?? 0,
+        confidenceScore: a.confidenceScore ?? 0,
+        feedback: a.feedback ?? '',
+        improvementTip: '',
+      }));
+
+      this.logger.log(
+        `Generating report for interview ${interview.id
+        } with ${evaluations.length} evaluated answers.`,
+      );
+
       reportData = await this.geminiService.generateReport({
-        job: interview.job?.title,
-        messages: interview.transcript,
+        messages: interview.transcript ?? [],
+        evaluations,
+        penaltyPoints: 0,
       });
     }
 

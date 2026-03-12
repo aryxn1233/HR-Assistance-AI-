@@ -485,6 +485,9 @@ Return ONLY valid JSON:
     });
 
     // Map to the legacy shape that the rest of the app expects
+    const joiningProbability = Math.round(
+      Math.min(100, Math.max(0, report.overall_rating * 9 + 10)),
+    );
     return {
       overall_rating: report.overall_rating,
       technical_score: report.technical_score,
@@ -496,12 +499,7 @@ Return ONLY valid JSON:
       weaknesses: report.weaknesses,
       detailed_feedback: report.summary,
       fit_for_role: report.recommendation === 'Hire' ? 'YES' : 'NO',
-      joining_probability_percent:
-        report.recommendation === 'Hire'
-          ? 80
-          : report.recommendation === 'Lean Hire'
-            ? 50
-            : 10,
+      joining_probability_percent: joiningProbability,
     };
   }
 
@@ -706,7 +704,7 @@ Format: ["Question 1", "Question 2", ...]
     const index = Math.min(
       Math.floor(historyLen / 2),
       questions.length - 1,
-     );
+    );
     return questions[index];
   }
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-return */
 import {
   Injectable,
   NotFoundException,
@@ -6,6 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Candidate } from './candidate.entity';
@@ -42,7 +43,7 @@ export class CandidatesService {
     private skillMatchingService: SkillMatchingService,
     private questionGenerationService: QuestionGenerationService,
     private dataSource: DataSource,
-  ) {}
+  ) { }
 
   async create(createCandidateDto: any, userId: string): Promise<Candidate> {
     const candidate = this.candidatesRepository.create({
@@ -61,7 +62,8 @@ export class CandidatesService {
     resumeText: string,
   ): Promise<Candidate> {
     // 1. Create User
-    const password = 'tempPassword123!';
+    // Generate a secure random password for externally-created users
+    const password = crypto.randomBytes(16).toString('hex');
     let user;
 
     try {
@@ -407,9 +409,9 @@ export class CandidatesService {
       avgScore:
         apps.length > 0
           ? Math.round(
-              apps.reduce((acc, curr) => acc + (curr.resumeScore || 0), 0) /
-                apps.length,
-            )
+            apps.reduce((acc, curr) => acc + (curr.resumeScore || 0), 0) /
+            apps.length,
+          )
           : 0,
       profileStrength: Math.min(strength, 100),
       statusCounts,

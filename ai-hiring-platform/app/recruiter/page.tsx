@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import { useEffect, useState } from "react";
 import { AIAnalyticsCharts } from "@/components/dashboard/AIAnalyticsCharts";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentCandidates } from "@/components/dashboard/RecentCandidates";
-import { Users, Video, Brain, TrendingUp, Loader2 } from "lucide-react";
+import { Users, Video, Brain, Briefcase } from "lucide-react";
 import LiveInterviews from "@/components/dashboard/LiveInterviews";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
@@ -39,14 +38,6 @@ export default function DashboardPage() {
     fetchMetrics();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -57,35 +48,39 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Candidates"
-          value={metrics.totalCandidates.toString()}
+          value={metrics.totalCandidates}
           description="Candidates in pipeline"
           icon={Users}
           trend={metrics.trends?.candidates}
+          loading={loading}
         />
         <MetricCard
           title="Active Jobs"
-          value={metrics.activeJobs.toString()}
+          value={metrics.activeJobs}
           description="Open positions"
-          icon={Video} // Maybe better icon? Briefcase is better but using what was there for now or lucide-react Briefcase
-          trend={{ value: 0, label: "new", positive: true }}
+          icon={Briefcase}
+          loading={loading}
         />
         <MetricCard
           title="Completed Interviews"
-          value={metrics.completedInterviews.toString()}
-          description="Total interviews Conducted"
+          value={metrics.completedInterviews}
+          description="Total interviews conducted"
           icon={Video}
           trend={metrics.trends?.interviews}
+          loading={loading}
         />
         <MetricCard
           title="Average AI Score"
-          value={metrics.averageScore.toString()}
+          value={metrics.averageScore}
           description="Across all roles"
           icon={Brain}
           trend={metrics.trends?.score}
+          loading={loading}
         />
       </div>
 
       <LiveInterviews />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4 lg:col-span-7">
           <AIAnalyticsCharts />

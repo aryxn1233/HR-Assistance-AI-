@@ -4,7 +4,7 @@ import { GeminiService } from '../gemini/gemini.service';
 
 @Injectable()
 export class ScoringService {
-  constructor(private readonly geminiService: GeminiService) {}
+  constructor(private readonly geminiService: GeminiService) { }
 
   async evaluateResume(resumeText: string, jobDescription: string) {
     try {
@@ -138,33 +138,17 @@ export class ScoringService {
       overallScore,
     } = aiResult;
 
-    // Weighted Score logic
-    let score =
+    // Weighted scoring formula (transparent, no magic adjustments):
+    // 30% skill match, 20% experience, 20% project relevance, 10% education, 20% overall AI score
+    const score =
       skillMatch * 0.3 +
       experienceMatch * 0.2 +
       projectRelevance * 0.2 +
       educationRelevance * 0.1 +
       overallScore * 0.2;
 
-    // Soft Boost Rules
-    if (projectRelevance >= 75) {
-      score += 8;
-    }
-
-    if (skillMatch >= 65 && experienceMatch >= 60) {
-      score += 5;
-    }
-
-    if (score >= 65 && score <= 69) {
-      score += 4;
-    }
-
-    if (score < 50) {
-      score += 8;
-    }
-
-    // Cap at 92 and round to nearest integer
-    const finalScore = Math.round(Math.min(score, 92));
+    // Cap at 95 and round to nearest integer
+    const finalScore = Math.round(Math.min(score, 95));
 
     // Categorization
     let category = '';

@@ -31,10 +31,12 @@ import { InterviewAgentModule } from './interview-agent/interview-agent.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // Creates tables on first run - disable after first deploy
+        // IMPORTANT: synchronize is disabled in production to prevent accidental data loss.
+        // Run 'typeorm migration:run' to apply schema changes in production.
+        synchronize: configService.get<string>('NODE_ENV') !== 'production',
         ssl:
           configService.get<string>('DB_HOST')?.includes('render.com') ||
-          configService.get<string>('NODE_ENV') === 'production'
+            configService.get<string>('NODE_ENV') === 'production'
             ? { rejectUnauthorized: false }
             : false,
       }),
@@ -53,4 +55,4 @@ import { InterviewAgentModule } from './interview-agent/interview-agent.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
