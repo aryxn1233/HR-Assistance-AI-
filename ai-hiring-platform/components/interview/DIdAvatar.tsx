@@ -203,7 +203,7 @@ export default function DIdAvatar({
     };
 
     useEffect(() => {
-        // startSession(); // REMOVED: Manual connection only
+        startSession(); // EAGER CONNECTION: Start on mount
         return () => {
             cleanup().catch(console.error);
         };
@@ -226,7 +226,7 @@ export default function DIdAvatar({
 
     return (
         <div className="w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden relative border-4 border-white/5 shadow-[0_0_60px_rgba(37,99,235,0.1)] mx-auto">
-            {/* Connection Placeholder (Icon/Orb) */}
+            {/* Connection Placeholder (Icon/Orb) - Hidden when connected */}
             {!isConnected && !loading && !error && (
                 <div className="flex flex-col items-center gap-6 z-30">
                     <div className="w-32 h-32 bg-blue-600/20 rounded-full flex items-center justify-center border-2 border-blue-500/50 relative">
@@ -237,13 +237,6 @@ export default function DIdAvatar({
                             </svg>
                         </div>
                     </div>
-                    <button
-                        onClick={startSession}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 border-b-4 border-blue-800"
-                    >
-                        Connect AI Interviewer
-                    </button>
-                    <p className="text-xs text-blue-400 font-medium tracking-wide">Standard WebRTC Stream Connection</p>
                 </div>
             )}
 

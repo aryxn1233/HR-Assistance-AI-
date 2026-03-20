@@ -160,12 +160,15 @@ async function startWebcamSharing() {
   }
 }
 
+// Initial microphone check
+checkMicPermission();
+
+// EAGER CONNECTION: Initialize D-ID as soon as context is validated
+console.log('Eager Connection: Initializing D-ID stream on page load...');
 if (context.interviewId && context.token) {
   initSocketMonitoring();
-}
-
-console.log('Extracted context:', context);
-if (!context.interviewId || !context.token) {
+  connect(); // Establishing WebRTC early
+} else {
   console.error('CRITICAL: Missing Interview Context (ID or Token) in URL parameters!');
   addMessageToChat('interviewer', "CRITICAL ERROR: No session context found in URL. Please start the interview from the Dashboard.");
 }
@@ -476,7 +479,15 @@ checkMicPermission();
 // Events
 mainBtn.onclick = async () => {
   if (!isInterviewStarted) {
-    await connect();
+    if (peerConnection && peerConnection.connectionState === 'connected') {
+      // If already connected eagerly, just start the interview
+      isInterviewStarted = true;
+      processChatMessage(null, true);
+      userInputArea.classList.remove('hidden');
+      document.getElementById('end-interview-btn').classList.remove('hidden');
+    } else {
+      await connect();
+    }
   } else if (!isRecognizing && !isAISpeaking) {
     autoStartListening();
   }
@@ -514,14 +525,12 @@ function onStreamEvent(message) {
     streamEventLabel.innerText = event;
 
     if (event === 'stream/ready') {
-      setTimeout(() => {
-        isStreamReady = true;
-        sessionStatusLabel.innerText = 'Live';
-        isInterviewStarted = true;
-        processChatMessage(null, true); // First Question
-        userInputArea.classList.remove('hidden');
-        document.getElementById('end-interview-btn').classList.remove('hidden');
-      }, 1000);
+      isStreamReady = true;
+      sessionStatusLabel.innerText = 'Ready';
+      if (!isInterviewStarted) {
+        mainBtn.innerText = 'Start Technical Interview';
+        mainBtn.disabled = false;
+      }
     } else if (event === 'stream/started') {
       isAISpeaking = true;
       if (recognition && isRecognizing) recognition.stop();

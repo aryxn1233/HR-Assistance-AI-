@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { OpenAIService } from '../ai/openai.service';
 import OpenAI from 'openai';
 
 // ─────────────────────────────────────────────
@@ -79,7 +80,10 @@ export class GeminiService {
   private currentKeyIndex = 0;
   private openRouter: OpenAI | null = null;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private openAiService: OpenAIService,
+  ) {
     const keys: string[] = [];
     let i = 1;
     while (true) {
@@ -95,10 +99,10 @@ export class GeminiService {
     } else {
       this.models = keys.map((key) => {
         const genAI = new GoogleGenerativeAI(key);
-        return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
       });
       console.log(
-        `✅  GeminiService initialized with ${this.models.length} API key(s).`,
+        `✅  GeminiService initialized with ${this.models.length} API key(s) using gemini-1.5-flash.`,
       );
     }
 
@@ -133,6 +137,7 @@ export class GeminiService {
     let attempts = 0;
     const maxAttempts = this.models.length;
 
+    // Phase 1: Try Gemini Keys
     while (attempts < maxAttempts) {
       const model = this.models[this.currentKeyIndex];
       try {
@@ -146,7 +151,8 @@ export class GeminiService {
         const isRetryable =
           error?.message?.includes('429') ||
           error?.status === 429 ||
-          (error?.status ?? 0) >= 500;
+          (error?.status ?? 0) >= 500 ||
+          error?.message?.includes('quota');
 
         if (isRetryable && attempts < maxAttempts) {
           this.currentKeyIndex =
@@ -161,8 +167,11 @@ export class GeminiService {
       }
     }
 
+    // Phase 2: Try OpenRouter Fallback
     if (this.openRouter && promptForOpenRouter) {
-      console.warn('🔄  All Gemini keys failed. Attempting OpenRouter fallback...');
+      console.warn(
+        '🔄  All Gemini keys failed. Attempting OpenRouter (gemini-2.0-flash) fallback...',
+      );
       try {
         const response = await this.openRouter.chat.completions.create({
           model: 'google/gemini-2.0-flash-001',
@@ -175,6 +184,23 @@ export class GeminiService {
         }
       } catch (e: any) {
         console.error(`❌  OpenRouter fallback failed: ${e.message}`);
+      }
+    }
+
+    // Phase 3: Try OpenAI Fallback (Final AI Attempt)
+    if (promptForOpenRouter) {
+      console.warn('🔄  Attempting OpenAI (gpt-4o-mini) tertiary fallback...');
+      try {
+        const response = await this.openAiService.generateResponse(
+          'You are a senior technical interviewer.',
+          promptForOpenRouter,
+        );
+        if (response && response !== 'AI Service Unavailable') {
+          if (typeof fallback === 'string') return response as any;
+          return this.cleanJson(response) as T;
+        }
+      } catch (e: any) {
+        console.error(`❌  OpenAI fallback failed: ${e.message}`);
       }
     }
 
@@ -309,6 +335,13 @@ If isProfessional is true, closingMessage must be null.
     const currentStage: InterviewStage = INTERVIEW_STAGES[stageIndex];
     const isLastStage = stageIndex >= INTERVIEW_STAGES.length - 1;
 
+    const cleanJD = typeof context.jobDescription === 'string'
+      ? context.jobDescription.slice(0, 1000)
+      : JSON.stringify(context.jobDescription).slice(0, 1000);
+    const cleanResume = typeof context.resume === 'string'
+      ? context.resume.slice(0, 1000)
+      : JSON.stringify(context.resume).slice(0, 1000);
+
     const prompt = `
 You are a Senior Technical Recruiter conducting a LIVE interview. Speak naturally like a human — warm, confident, and professional.
 
@@ -320,9 +353,9 @@ ALWAYS vary your sentence openers. Good examples:
 - "I appreciate the detail. Here's a trickier one: ..."
 
 Context:
-- Job Description: ${JSON.stringify(context.jobDescription)}
-- Candidate Resume: ${JSON.stringify(context.resume)}
-- Interview History (previous Q&A): ${JSON.stringify(context.history ?? [])}
+- Job Description (summary): ${cleanJD}
+- Candidate Resume (summary): ${cleanResume}
+- Interview History (recent context): ${JSON.stringify((context.history ?? []).slice(-6))}
 - Current Stage: "${currentStage}"
 - Difficulty to use for this question: "${difficulty}"
 - Number of exchanges so far: ${exchangeCount}
@@ -439,17 +472,22 @@ Return ONLY valid JSON:
         evaluations.length
         : 0;
 
+    // Per-answer evaluation hints (if available)
+    const scoreHints = avgTech > 0
+      ? `- Average Technical Score: ${avgTech.toFixed(2)} / 10
+- Average Accuracy Score: ${avgAccuracy.toFixed(2)} / 10
+- Average Communication Score: ${avgComm.toFixed(2)} / 10
+- Average Confidence Score: ${avgConf.toFixed(2)} / 10`
+      : `(Per-answer evaluations were deferred for efficiency. Please calculate all scores holistically below based ONLY on the Transcript.)`;
+
     const prompt = `
 You are a world-class Technical Recruiter writing an internal candidate evaluation report.
 
 Interview Transcript:
 ${JSON.stringify(interviewData.messages)}
 
-Per-answer Evaluation Scores (already computed):
-- Average Technical Score: ${avgTech.toFixed(2)} / 10
-- Average Accuracy Score: ${avgAccuracy.toFixed(2)} / 10
-- Average Communication Score: ${avgComm.toFixed(2)} / 10
-- Average Confidence Score: ${avgConf.toFixed(2)} / 10
+Scores Context:
+${scoreHints}
 
 Penalty Points (from misconduct): ${penaltyPoints}
 - These penalty points MUST reduce the overall_rating proportionally.
@@ -545,8 +583,9 @@ Return ONLY valid JSON:
   async generateNextQuestion(
     history: { role: 'system' | 'user' | 'assistant'; content: string }[],
   ): Promise<string | null> {
+    const recentHistory = history.slice(-6);
     const prompt =
-      history.map((h) => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n') +
+      recentHistory.map((h) => `${h.role.toUpperCase()}: ${h.content}`).join('\n\n') +
       '\n\nGenerate the next interview question based on the conversation above. Return only the question text, nothing else.';
 
     return this.runWithRotation(async (model) => {

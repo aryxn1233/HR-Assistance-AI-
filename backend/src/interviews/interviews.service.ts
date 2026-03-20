@@ -526,8 +526,17 @@ export class InterviewsService {
     // Live Monitoring Broadcast
     this.liveInterviewGateway.broadcastAnswer(id, answerText);
 
-    // Evaluate Answer
-    let evaluation;
+    // Evaluate Answer - SKIP individual evaluation to save API calls in free tier
+    // Evaluation will be performed holistically during final report generation.
+    let evaluation = {
+      technicalScore: 0,
+      accuracyScore: 0,
+      communicationScore: 0,
+      confidenceScore: 0,
+      feedback: 'Evaluation deferred for efficiency. Holistic evaluation will be in the final report.',
+    };
+
+    /* 
     try {
       evaluation = await this.geminiService.evaluateAnswer(
         currentQuestion.questionText,
@@ -538,14 +547,8 @@ export class InterviewsService {
         'Gemini evaluation failed. Continuing with fallback zeros.',
         e,
       );
-      evaluation = {
-        technicalScore: 0,
-        accuracyScore: 0,
-        communicationScore: 0,
-        confidenceScore: 0,
-        feedback: 'Evaluation failed due to an error.',
-      };
     }
+    */
 
     // Save Answer
     const answer = this.answersRepository.create({

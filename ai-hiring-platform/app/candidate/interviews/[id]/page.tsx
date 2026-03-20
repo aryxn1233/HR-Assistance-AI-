@@ -13,47 +13,10 @@ import { WebcamPreview } from "@/components/interview/WebcamPreview";
 import { useWebSpeech } from "@/hooks/useWebSpeech";
 import { avatarStateManager } from "@/lib/InterviewAvatarStateManager";
 import { getFreshToken } from "@/lib/tokenManager";
-
 export default function InterviewRoomPage() {
     const params = useParams();
     const router = useRouter();
     const interviewId = params.id as string;
-
-    useEffect(() => {
-        const redirectWithContext = async () => {
-            const streamUrl = process.env.NEXT_PUBLIC_DID_STREAMING_URL || 'http://localhost:3001';
-            try {
-                // Get token using global token manager
-                const token = await getFreshToken();
-
-                // Fetch interview details to get applicationId
-                const response = await api.get(`/interviews/${interviewId}`);
-                const interviewData = response.data;
-                const applicationId = interviewData.applicationId;
-
-                // Build query params
-                const params = new URLSearchParams({
-                    interviewId: interviewId,
-                    token: token || "",
-                    applicationId: applicationId || ""
-                });
-
-                if (params.toString()) {
-                    window.location.href = `${streamUrl}?${params.toString()}`;
-                } else {
-                    window.location.href = streamUrl;
-                }
-            } catch (err) {
-                console.error("Failed to redirect with context:", err);
-                // Fallback redirect if API fails
-                window.location.href = streamUrl;
-            }
-        };
-
-        if (interviewId) {
-            redirectWithContext();
-        }
-    }, [interviewId]);
 
     const [interview, setInterview] = useState<any>(null);
     const [currentQuestion, setCurrentQuestion] = useState<any>(null);
