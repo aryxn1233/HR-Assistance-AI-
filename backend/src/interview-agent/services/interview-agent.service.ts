@@ -12,7 +12,7 @@ export class InterviewAgentService {
     private geminiService: GeminiService,
     private questionFallback: QuestionFallbackService,
     private sessionService: InterviewSessionService,
-  ) {}
+  ) { }
 
   private isSkipResponse(answer: string): boolean {
     if (!answer || answer.trim() === '') return false;
@@ -88,13 +88,13 @@ export class InterviewAgentService {
       role: 'system' | 'user' | 'assistant';
       content: string;
     }[] = [
-      {
-        role: 'system',
-        content: `You are an AI technical interviewer. Ask one question at a time.
+        {
+          role: 'system',
+          content: `You are an AI technical interviewer. Ask one question at a time.
 Verify the candidate's last answer. Generate the next logical question to assess their technical knowledge, reasoning ability, and real project experience for a ${jobRole} role.
 Do not reveal answers. Do not give hints. Do not ask multiple questions.`,
-      },
-    ];
+        },
+      ];
 
     for (const entry of transcript) {
       if (entry.speaker === 'AI') {
@@ -110,6 +110,19 @@ Do not reveal answers. Do not give hints. Do not ask multiple questions.`,
           history.push({ role: 'user', content: entry.answer });
         }
       }
+    }
+
+    // Check for "Stop/Exit/Finish" intent in the last answer
+    const lastAnswer = transcript.length > 0 ? transcript[transcript.length - 1].message : '';
+    const stopRegex = /\b(stop|end|finish|exit|close|thank you|that's all|no more questions)\b/i;
+    const isExitIntent = stopRegex.test(lastAnswer || '') && (lastAnswer || '').length < 50;
+
+    // CAP the interview at 16 questions (8 exchanges) if AI is struggling or fallback is active
+    const MAX_QUESTIONS = 16;
+    if (interview.currentQuestionIndex >= MAX_QUESTIONS || isExitIntent) {
+      this.logger.log(`Closing interview session ${id} (Index: ${interview.currentQuestionIndex}, ExitIntent: ${isExitIntent})`);
+      interview.status = 'completed'; // Local update for the returned result
+      return "Thank you for sharing all those details. We've reached the end of our scheduled time. I truly appreciate you taking the time to speak with me today. Our team will review your responses and get back to you soon. Have a great day!";
     }
 
     const nextQuestion = await this.geminiService.generateNextQuestion(history);

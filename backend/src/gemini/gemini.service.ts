@@ -726,8 +726,8 @@ Format: ["Question 1", "Question 2", ...]
       },
       {
         question:
-          "Great, thank you for that overview. I noticed something interesting on your resume — could you tell me more about your most impactful project and the specific role you played in it?",
-        skillFocus: 'Resume',
+          "Great, thank you for that overview. Building on that — could you tell me more about your most impactful project and the specific role you played in it?",
+        skillFocus: 'Experience',
         difficulty: 'Medium',
         isComplete: false,
       },
@@ -740,35 +740,28 @@ Format: ["Question 1", "Question 2", ...]
       },
       {
         question:
-          "Good. Building on that — how do you manage race conditions or concurrency issues in a production system?",
-        skillFocus: 'Technical Depth',
-        difficulty: difficulty,
-        isComplete: false,
-      },
-      {
-        question:
-          "Interesting approach. Now for something broader — imagine you're designing a real-time notification system for millions of users. How would you architect that?",
+          "Good. How do you approach designing a scalable system that needs to handle high concurrency and data consistency?",
         skillFocus: 'System Design',
         difficulty: difficulty,
         isComplete: false,
       },
       {
         question:
-          "Good thinking on the design. Here's a challenge — you're debugging a production issue with no logs and a 2-minute SLA. Walk me through exactly what you'd do.",
-        skillFocus: 'Problem Solving',
+          "Interesting thought. Let's talk about problem-solving — imagine you're debugging a complex memory leak in a production environment. What steps would you take to isolate the root cause?",
+        skillFocus: 'Technical Depth',
         difficulty: difficulty,
         isComplete: false,
       },
       {
         question:
-          "I appreciate the detail there. Let's shift gears — tell me about a time you had a significant disagreement with a teammate. How did you resolve it?",
+          "Now for something more scenario-based — how do you handle technical disagreements within your team when multiple strong solutions are proposed?",
         skillFocus: 'Behavioral',
         difficulty: 'Medium',
         isComplete: false,
       },
       {
         question:
-          "That's great to hear. We're coming to the end of our session — do you have any questions for me about the team, the engineering culture, or the role itself?",
+          "I appreciate the detail there. We're coming to the end of our session — do you have any final questions for me about the team, the engineering culture, or the role itself?",
         skillFocus: 'Closing',
         difficulty: 'Easy',
         isComplete: true,
