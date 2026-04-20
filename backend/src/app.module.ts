@@ -36,10 +36,9 @@ import { CommonModule } from './common/common.module';
         // ... rest same
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         ssl:
-          configService.get<string>('DB_HOST')?.includes('render.com') ||
-            configService.get<string>('NODE_ENV') === 'production'
-            ? { rejectUnauthorized: false }
-            : false,
+          configService.get<string>('NODE_ENV') === 'production'
+            ? false // Render internal connections do NOT support SSL
+            : { rejectUnauthorized: false }, // Local connections to external DB require SSL
       }),
       inject: [ConfigService],
     }),
