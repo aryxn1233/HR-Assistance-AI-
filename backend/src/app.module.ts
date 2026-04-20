@@ -25,21 +25,37 @@ import { CommonModule } from './common/common.module';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USER'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        // ... rest same
-        synchronize: configService.get<string>('NODE_ENV') !== 'production',
-        ssl:
-          configService.get<string>('DB_HOST')?.includes('render.com')
-            ? { rejectUnauthorized: false } // External Render DB requires SSL
-            : false, // Internal connections or local DB do not need SSL
-      }),
+      useFactory: (configService: ConfigService) => {
+        let host = configService.get<string>('DB_HOST');
+        const isProd = configService.get<string>('NODE_ENV') === 'production';
+        let ssl: any = false;
+
+        // Auto-fix Render connection issues
+        if (host?.includes('render.com')) {
+          if (isProd) {
+            // If deployed on Render, automatically extract the internal hostname
+            // e.g., 'dpg-xxxxx-a.oregon-postgres.render.com' -> 'dpg-xxxxx-a'
+            host = host.split('.')[0];
+            ssl = false; // Render internal connections block SSL
+          } else {
+            // Local dev connecting to Render requires SSL
+            ssl = { rejectUnauthorized: false };
+          }
+        }
+
+        return {
+          type: 'postgres',
+          host,
+          port: configService.get<number>('DB_PORT'),
+          username: configService.get<string>('DB_USER'),
+          password: configService.get<string>('DB_PASSWORD'),
+          database: configService.get<string>('DB_NAME'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          // ... rest same
+          synchronize: !isProd,
+          ssl,
+        };
+      },
       inject: [ConfigService],
     }),
     AuthModule,
