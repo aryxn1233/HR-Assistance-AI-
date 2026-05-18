@@ -26,21 +26,13 @@ import { CommonModule } from './common/common.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        let host = configService.get<string>('DB_HOST');
+        const host = configService.get<string>('DB_HOST');
         const isProd = configService.get<string>('NODE_ENV') === 'production';
         let ssl: any = false;
 
-        // Auto-fix Render connection issues
+        // If using the external Render URL, we MUST use SSL
         if (host?.includes('render.com')) {
-          if (isProd) {
-            // If deployed on Render, automatically extract the internal hostname
-            // e.g., 'dpg-xxxxx-a.oregon-postgres.render.com' -> 'dpg-xxxxx-a'
-            host = host.split('.')[0];
-            ssl = false; // Render internal connections block SSL
-          } else {
-            // Local dev connecting to Render requires SSL
-            ssl = { rejectUnauthorized: false };
-          }
+          ssl = { rejectUnauthorized: false };
         }
 
         return {
@@ -51,9 +43,13 @@ import { CommonModule } from './common/common.module';
           password: configService.get<string>('DB_PASSWORD'),
           database: configService.get<string>('DB_NAME'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          // ... rest same
           synchronize: !isProd,
           ssl,
+          // Limit connection pool to avoid "Connection terminated unexpectedly" on Render free tier
+          extra: {
+            max: 3,
+            connectionTimeoutMillis: 10000,
+          },
         };
       },
       inject: [ConfigService],
