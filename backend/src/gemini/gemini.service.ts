@@ -74,12 +74,16 @@ type InterviewStage = (typeof INTERVIEW_STAGES)[number];
 //  GeminiService
 // ─────────────────────────────────────────────
 
-// Current free-tier Gemini model — update here if Google changes the default.
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// Free-tier Gemini models (in priority order).
+// gemini-1.5-flash  → 15 RPM, 1 500 RPD free — primary workhorse
+// gemini-1.5-flash-8b → 15 RPM, 1 500 RPD free — lighter fallback
+// gemini-2.0-flash requires billing to be enabled (limit: 0 on free accounts).
+const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b'] as const;
 
 @Injectable()
 export class GeminiService {
-  private models: GenerativeModel[] = [];
+  // Each entry: { modelName, generativeModel } — one entry per key × per model
+  private modelTiers: { name: string; models: GenerativeModel[] }[] = [];
   private currentKeyIndex = 0;
   private openRouter: OpenAI | null = null;
 
@@ -100,12 +104,16 @@ export class GeminiService {
     if (keys.length === 0) {
       console.warn('⚠️  No GEMINI_API_KEYs found in environment variables');
     } else {
-      this.models = keys.map((key) => {
-        const genAI = new GoogleGenerativeAI(key);
-        return genAI.getGenerativeModel({ model: GEMINI_MODEL });
-      });
+      // Build one tier per model name. Each tier has one GenerativeModel per key.
+      this.modelTiers = GEMINI_MODELS.map((modelName) => ({
+        name: modelName,
+        models: keys.map((key) =>
+          new GoogleGenerativeAI(key).getGenerativeModel({ model: modelName }),
+        ),
+      }));
       console.log(
-        `✅  GeminiService initialized with ${this.models.length} API key(s) using ${GEMINI_MODEL}.`,
+        `✅  GeminiService: ${keys.length} key(s) × ${GEMINI_MODELS.length} models ` +
+        `[${GEMINI_MODELS.join(', ')}] = ${keys.length * GEMINI_MODELS.length} total slots.`,
       );
     }
 
@@ -123,6 +131,11 @@ export class GeminiService {
     }
   }
 
+  // Convenience getter kept for any legacy internal callers
+  private get models(): GenerativeModel[] {
+    return this.modelTiers[0]?.models ?? [];
+  }
+
   // ───────────────────────────────────────────
   //  API Key Rotation Core
   // ───────────────────────────────────────────
@@ -132,50 +145,67 @@ export class GeminiService {
     fallback: T,
     promptForOpenRouter?: string,
   ): Promise<T> {
-    if (this.models.length === 0 && !this.openRouter) {
+    if (this.modelTiers.length === 0 && !this.openRouter) {
       console.error('AI models not initialized. Check API Keys.');
       return fallback;
     }
 
-    let attempts = 0;
-    const maxAttempts = this.models.length;
+    // Phase 1: Try each Gemini model tier (e.g. gemini-1.5-flash, then gemini-1.5-flash-8b)
+    for (const tier of this.modelTiers) {
+      const { name: tierName, models: tierModels } = tier;
+      let attempts = 0;
+      let keyIndex = this.currentKeyIndex % tierModels.length;
 
-    // Phase 1: Try Gemini Keys
-    while (attempts < maxAttempts) {
-      const model = this.models[this.currentKeyIndex];
-      try {
-        return await action(model);
-      } catch (error: any) {
-        attempts++;
-        console.error(
-          `❌  Gemini Key #${this.currentKeyIndex + 1} error: ${error?.message}`,
-        );
-
-        const isRetryable =
-          error?.message?.includes('429') ||
-          error?.status === 429 ||
-          (error?.status ?? 0) >= 500 ||
-          error?.message?.includes('quota') ||
-          error?.message?.includes('not found') ||
-          error?.message?.includes('404');
-
-        if (isRetryable && attempts < maxAttempts) {
-          this.currentKeyIndex =
-            (this.currentKeyIndex + 1) % this.models.length;
-          console.warn(
-            `🔄  Rotating to Gemini API Key #${this.currentKeyIndex + 1} (attempt ${attempts + 1}/${maxAttempts})`,
+      while (attempts < tierModels.length) {
+        const model = tierModels[keyIndex];
+        try {
+          const result = await action(model);
+          // Persist the winning key index for next call
+          this.currentKeyIndex = keyIndex;
+          return result;
+        } catch (error: any) {
+          attempts++;
+          console.error(
+            `❌  [${tierName}] Key #${keyIndex + 1} error: ${(error?.message as string)?.split('\n')[0]}`,
           );
-          continue;
-        }
 
-        break;
+          const isQuotaError =
+            error?.message?.includes('429') ||
+            error?.status === 429 ||
+            error?.message?.includes('quota') ||
+            error?.message?.includes('RESOURCE_EXHAUSTED');
+
+          const isModelError =
+            error?.message?.includes('not found') ||
+            error?.message?.includes('404') ||
+            (error?.status ?? 0) >= 500;
+
+          if (isModelError) {
+            // Model-level error — skip this whole tier, try next model
+            console.warn(`⏭️  [${tierName}] Model-level error, skipping tier.`);
+            break;
+          }
+
+          if (isQuotaError && attempts < tierModels.length) {
+            keyIndex = (keyIndex + 1) % tierModels.length;
+            console.warn(
+              `🔄  [${tierName}] Rotating to Key #${keyIndex + 1} (attempt ${attempts + 1}/${tierModels.length})`,
+            );
+            continue;
+          }
+
+          // Non-retryable error or all keys exhausted for this tier
+          break;
+        }
       }
+
+      console.warn(`⚠️  [${tierName}] All keys exhausted — trying next model tier.`);
     }
 
     // Phase 2: Try OpenRouter Fallback
     if (this.openRouter && promptForOpenRouter) {
       console.warn(
-        '🔄  All Gemini keys failed. Attempting OpenRouter (gemini-2.0-flash) fallback...',
+        '🔄  All Gemini tiers failed. Attempting OpenRouter (gemini-2.0-flash) fallback...',
       );
       try {
         const response = await this.openRouter.chat.completions.create({
