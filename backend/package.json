@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "db:migrate": "node scripts/run-migration.js",
+    "db:verify": "node scripts/verify-tables.js"
   },
   "dependencies": {
     "@clerk/backend": "^3.0.1",
