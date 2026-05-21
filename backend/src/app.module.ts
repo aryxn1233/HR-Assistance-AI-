@@ -43,9 +43,8 @@ import { CommonModule } from './common/common.module';
           password: configService.get<string>('DB_PASSWORD'),
           database: configService.get<string>('DB_NAME'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          // TEMPORARY: force synchronize=true to create tables on fresh production DB.
-          // TODO: revert to `synchronize: !isProd` after first successful deploy.
-          synchronize: true,
+          // synchronize: auto-creates/alters tables. Safe in dev, risky in prod with real data.
+          synchronize: !isProd,
           ssl,
           // Limit connection pool to avoid "Connection terminated unexpectedly" on Render free tier
           extra: {
