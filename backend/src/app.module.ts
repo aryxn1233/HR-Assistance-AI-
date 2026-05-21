@@ -43,10 +43,9 @@ import { CommonModule } from './common/common.module';
           password: configService.get<string>('DB_PASSWORD'),
           database: configService.get<string>('DB_NAME'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          // synchronize creates tables automatically on boot.
-          // In production: disabled by default (safe for existing data).
-          // To create the schema on a fresh DB, set DISABLE_SYNC=false in Render env vars.
-          synchronize: !isProd || configService.get<string>('DISABLE_SYNC') === 'false',
+          // TEMPORARY: force synchronize=true to create tables on fresh production DB.
+          // TODO: revert to `synchronize: !isProd` after first successful deploy.
+          synchronize: true,
           ssl,
           // Limit connection pool to avoid "Connection terminated unexpectedly" on Render free tier
           extra: {
