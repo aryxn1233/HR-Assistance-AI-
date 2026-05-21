@@ -74,6 +74,9 @@ type InterviewStage = (typeof INTERVIEW_STAGES)[number];
 //  GeminiService
 // ─────────────────────────────────────────────
 
+// Current free-tier Gemini model — update here if Google changes the default.
+const GEMINI_MODEL = 'gemini-2.0-flash';
+
 @Injectable()
 export class GeminiService {
   private models: GenerativeModel[] = [];
@@ -99,10 +102,10 @@ export class GeminiService {
     } else {
       this.models = keys.map((key) => {
         const genAI = new GoogleGenerativeAI(key);
-        return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        return genAI.getGenerativeModel({ model: GEMINI_MODEL });
       });
       console.log(
-        `✅  GeminiService initialized with ${this.models.length} API key(s) using gemini-1.5-flash.`,
+        `✅  GeminiService initialized with ${this.models.length} API key(s) using ${GEMINI_MODEL}.`,
       );
     }
 
@@ -152,7 +155,9 @@ export class GeminiService {
           error?.message?.includes('429') ||
           error?.status === 429 ||
           (error?.status ?? 0) >= 500 ||
-          error?.message?.includes('quota');
+          error?.message?.includes('quota') ||
+          error?.message?.includes('not found') ||
+          error?.message?.includes('404');
 
         if (isRetryable && attempts < maxAttempts) {
           this.currentKeyIndex =
