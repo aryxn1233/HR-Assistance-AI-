@@ -43,8 +43,9 @@ import { CommonModule } from './common/common.module';
           password: configService.get<string>('DB_PASSWORD'),
           database: configService.get<string>('DB_NAME'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          // synchronize: auto-creates/alters tables. Safe in dev, risky in prod with real data.
-          synchronize: !isProd,
+          // synchronize: auto-creates/alters tables on startup if they don't exist.
+          // Enabled in all environments so Render always has the correct schema.
+          synchronize: true,
           ssl,
           // Limit connection pool to avoid "Connection terminated unexpectedly" on Render free tier
           extra: {
