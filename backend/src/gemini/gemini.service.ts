@@ -658,19 +658,30 @@ ${jobDescription}
 Resume:
 ${resumeText}`;
 
-    const fallback = {
-      skillMatchScore: 0,
-      experienceMatch: 0,
-      relevanceScore: 0,
-      overallScore: 0,
-      strengths: ['Unable to evaluate'],
-      weaknesses: ['AI service unavailable'],
-    };
+    // Use a sentinel that is NOT a valid score object so the ScoringService
+    // catch block will correctly fall through to its keyword-matching fallback.
+    const AI_UNAVAILABLE_SENTINEL = null as any;
 
-    return this.runWithRotation(async (model) => {
-      const result = await model.generateContent(prompt);
-      return this.cleanJson(result.response.text());
-    }, fallback, prompt);
+    const result = await this.runWithRotation(async (model) => {
+      const parsed = this.cleanJson((await model.generateContent(prompt)).response.text());
+      // Validate the AI actually returned meaningful scores, not empty/zero
+      if (
+        parsed &&
+        typeof parsed.overallScore === 'number' &&
+        parsed.overallScore > 0
+      ) {
+        return parsed;
+      }
+      throw new Error('AI returned empty or zero score — will retry/fallback.');
+    }, AI_UNAVAILABLE_SENTINEL, prompt);
+
+    if (result === null) {
+      // All AI tiers (Gemini + OpenRouter + OpenAI) failed — signal to ScoringService
+      // to run its own deterministic keyword-matching fallback.
+      throw new Error('All AI providers failed to evaluate the resume.');
+    }
+
+    return result;
   }
 
   // ───────────────────────────────────────────

@@ -13,14 +13,26 @@ export class ScoringService {
         jobDescription,
       );
 
+      // Guard: if AI returned but all scores are 0, treat as failure and use
+      // the deterministic keyword-matching fallback instead of scoring 7/100.
+      const overallScore = aiResult?.overallScore ?? 0;
+      const skillScore = aiResult?.skillMatchScore ?? aiResult?.skillMatch ?? 0;
+      if (overallScore === 0 && skillScore === 0) {
+        console.warn(
+          'AI resume evaluation returned all-zero scores — falling back to keyword matching.',
+        );
+        const fallbackResult = this.getFallbackScore(resumeText, jobDescription);
+        return this.calculateFinalScore(fallbackResult);
+      }
+
       // Mapping from OpenAIService schema to ScoringService schema if necessary
       const normalizedResult = {
-        skillMatch: aiResult.skillMatchScore || aiResult.skillMatch || 0,
+        skillMatch: skillScore,
         experienceMatch: aiResult.experienceMatch || 0,
         projectRelevance:
           aiResult.relevanceScore || aiResult.projectRelevance || 0,
         educationRelevance: aiResult.educationRelevance || 70,
-        overallScore: aiResult.overallScore || 0,
+        overallScore,
         breakdown: aiResult.breakdown || {
           skills: aiResult.strengths?.join(', ') || 'Evaluated by AI',
           experience: 'Analyzed based on history',
